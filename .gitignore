@@ -1,6 +1,6 @@
 *.bag
-*.png
 *.bin
 */__pycache__/*
 *.pyc
 dataset/KITTI/2011_09_26/*.txt
+dataset/*.png
