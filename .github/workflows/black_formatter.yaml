@@ -20,7 +20,7 @@ jobs:
       - name: isort Check
         uses: isort/isort-action@master
         with:
-          args: . --settings-path ./pyproject.toml --verbose # --diff
+          configuration: --settings-path ./pyproject.toml --verbose # --diff
 
       - name: Check for modified files
         id: git-check
