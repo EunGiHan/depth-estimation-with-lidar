@@ -2,5 +2,5 @@
 *.png
 *.bin
 */__pycache__/*
-# *.txt
-dataset/KITTI/2011_09_26/*
+*.pyc
+dataset/KITTI/2011_09_26/*.txt

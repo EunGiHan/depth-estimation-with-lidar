@@ -13,10 +13,9 @@ jobs:
           ref: ${{ github.head_ref }}
 
       - name: Black Formatter Check
-        uses: lgeiger/black-action@v1.0.1 #psf/black@stable
+        uses: lgeiger/black-action@v1.0.1
         with:
-          # options: "--config ./black_format.toml --verbose" # --diff --color
-          args: . --config ./black_format.toml --verbose
+          args: . --config ./pyproject.toml --diff --color
 
       - name: Check for modified files
         id: git-check

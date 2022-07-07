@@ -1,45 +1,75 @@
+# -*- coding: utf-8 -*-
+
+"""main code
+
+monocular depth estimation and evaluation with LiDAR
+===========
+
+Pipeline:
+    1. (parse_args) get commandline parameters
+    2. (main) get lidar raw data from dataset and project to image plane (+ save)
+    3. (main) get image data from dataset
+    4. (main) run depth estimation model and get estimates (+ save)
+    5. (main) compare estimates & gt -> calculate errors with metrics (+ save)
+
+Todo:
+    * 아예 파라미터 클래스 만들까... proslam 클래스처럼
+    * pytest로 연계하기
+    * 빈칸들 채우기
+    * TODO 표시된 부분 수정하기
+    * calibration 관련 파일 검증하기! (tools/transformation.py와 parsers.py)
+"""
+
 from datetime import datetime
+import sys
 
 from tools.parsers import *
 from tools.utils import *
 from tools.transformations import *
 
-# TODO 여러 이미지를 넣어서 배치 처리 할 것인지? 여러 이미지 사용해(반복) 평균적인 통계를 낼 것인지?
-
 
 def main(time):
-    depth_gt_save_path = "./outputs/depth_gt_" + time  # TODO 변수명 헷갈릴 듯?
-    depth_map_save_path = "./outputs/depth_map_" + time
-    eval_result_save_path = "./outputs/eval_result_" + time
+    # data paths
+    cam_calib_file = "dataset/ACE/calibration.yaml"
+    lidar_calib_file="dataset/ACE/calibration.yaml"
+    image_file = "" # TODO 이미지 파일 경로
+    point_cloud_file = "" # TODO pcd 파일 경로
 
-    """
-    1. lidar data projection -> parse
-    2. get image
-    3. get depth estimation model output (save txt & image, either)
-    4. compare 1 and 3 -> print termianl & save txt
-    """
+    # set save paths (without extension)
+    depth_gt_save_path = "./outputs/depth_gt-" + time
+    depth_map_save_path = "./outputs/depth_map-" + time
+    eval_result_save_path = "./outputs/eval_result-" + time
 
-    # 1. lidar data projection -> parse
-    lidar_points = convert_lidar_to_cam()
-    # TODO param 넣기!
-    # [[u, v, gt_depth], [u, v, gt_depth], [u, v, gt_depth], ...] for one image
+    # parse calibration files -> get information
+    cam_calib = parse_cam_calib(command_args.dataset, cam_calib_file)
+    lidar_calib = parse_lidar_calib(command_args.dataset, lidar_calib_file)
 
-    # 2. get image
-    image = None  # 이미지 경로 지정해주고 불러오기
+    # get lidar raw data from dataset and project to image plane (+ save)
+    depth_gt = project_lidar_to_cam(cam_calib, lidar_calib, point_cloud_file)
+    save_depth_txt(depth_gt, depth_gt_save_path+".txt")
+    save_depth_gt_img(depth_gt, depth_gt_save_path+".png")
 
-    # 3. get depth estimation model output (save txt & image, either)
-    ### 채우기
-    depth_map = (
-        None  # 이미지에서 뽑은 depth map 배열 [[u, v, gt_depth], [u, v, gt_depth], [u, v, gt_depth], ...]
-    )
+    # get image data from dataset
+    image = None  # TODO 이미지 경로(image_file)에서 불러오기 / 데이터셋에 따라 다르다면 아래 주석을 풀어서 대신 사용
+    # if command_args.dataset == "ace":
+    #     image = None
+    # elif command_args.dataset == "kitti":
+    #     image = None
 
-    # 4. compare 1 and 3 -> print termianl & save txt
-    ### 채우기
-    eval_result = None  # 각종 수치자료 dict {'SILog': xxxxx, 'MASE': xxxxx, ...}
-    save_eval_result(eval_result)
+    # run depth estimation model and get estimates (+ save)
+    # TODO 희평 님 이곳에 채워주세요. 리턴은 depth_map
+    depth_map = None # 이미지에서 뽑은 depth map 배열 (예) [[u, v, gt_depth], [u, v, gt_depth], ...]
+    save_depth_txt(depth_map, depth_map_save_path+".txt")
+    save_depth_map_img(depth_gt, depth_map_save_path+".png")
+
+    # compare estimates & gt -> calculate errors with metrics (+ save)
+    # TODO 현진 님 이곳에 채워주세요. 리턴은 eval_result
+    eval_result = None # 각종 수치자료 (예) dict {'SILog': xxxxx, 'MASE': xxxxx, ...}
+    report = make_eval_report(eval_result)
+    save_eval_result(report, eval_result_save_path)
 
 
 if __name__ == "__main__":
-    time = (datetime.now()).strftime("%Y-%m-%d_%H-%M-%S")
-    command_args = parse_args(time)
+    time = (datetime.now()).strftime("%Y_%m_%d-%H_%M_%S")
+    command_args = parse_args()
     main(time)

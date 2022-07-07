@@ -1,75 +1,85 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import argparse, sys
 import numpy as np
 import yaml
 
-"""
-Requirements: pip install pyyaml
-"""
 
+def parse_args():
+    """ parse commandline arguements
 
-def parse_args(time):
+    Returns:
+        argparse.Namespace: argument parsing data
+    """
     parser = argparse.ArgumentParser(description="depth estimation & evaluation")
     parser.add_argument(
-        "--dataset", dest="dataset", help="kitti / ace", default="dataset", type=str
+        "--dataset", dest="dataset", help="kitti / ace", default="ace", type=str
     )
     parser.add_argument(
         "--visualize", dest="visualize", help="visualize results", default="False", type=bool
     )
-    parser.add_argument(
-        "--save_dir",
-        dest="save_dir",
-        help="path to save evaluation results",
-        default="./outputs/eval_result_" + time,
-        type=str,
-    )
     # TODO 필요한 것 추가하기
 
-    if len(sys.argv) == 1:
-        parser.print_help()
-        sys.exit()
+    # if no arguments
+    # if len(sys.argv) == 1:
+    #     parser.print_help()
+    #     sys.exit()
 
     args = parser.parse_args()
     return args
 
 
-def parse_cam_calib(file_path):
-    with open(file_path) as f:
-        calib_info = yaml.load(f, Loader=yaml.FullLoader)["camera"]["front"]
-        # print(calib_info)
-        """
-        'D': [[-0.3713184655742523], [0.1894083454473062], [0.0017443421254646307], [0.00037526691609012837], [-0.06081438434204424]], 
-        'H': [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]], 
-        'K': [[1365.4887468866116, 0.0, 1026.5997744850633], [0.0, 1366.2954658193316, 468.9522311262687], [0.0, 0.0, 1.0]], 
-        'P': [[1046.688720703125, 0.0, 1033.3313677806436, 0.0], [0.0, 1277.919921875, 460.2549448068021, 0.0], [0.0, 0.0, 1.0, 0.0]], 
-        'R': [[0.0122169643644543, -0.9999223846340135, 0.0024434585213449255], [0.08370134546701578, -0.0014124149699195523, -0.9964898844699649], [0.996415992720274, 0.012378602173938212, 0.0836775935330984]], 
-        'T': [[0.19247596939426734], [1.2632069552043956], [-2.8884357686348134]], 
-        'model': 'pinhole', 
-        'roi': {}, 
-        'size': {'height': 1086, 'width': 2040}}
-        """
+def parse_cam_calib(dataset: str, file_path: str) -> dict:
+    """ pasre camera calibration file(yaml)
 
+    Args:
+        dataset (str): dataset(ace / kitti)
+        file_path (str): file path to save result
+
+    Returns:
+        dict: parsed calibration values in dictionary format
+    """
+    with open(file_path) as f:
         cam_calib = {}
-        cam_calib["D"] = calib_info["D"]
-        cam_calib["H"] = calib_info["H"]
-        cam_calib["K"] = calib_info["K"]
-        cam_calib["P"] = calib_info["P"]
-        cam_calib["R"] = calib_info["R"]
-        cam_calib["T"] = calib_info["T"]
-        cam_calib["S"] = calib_info["size"]
+
+        if dataset == "ace":
+            calib_info = yaml.load(f, Loader=yaml.FullLoader)["camera"]["front"]
+            # cam_calib["D"] = calib_info["D"] # distortion coeefficients (5, 1)
+            # cam_calib["H"] = calib_info["H"] # (3, 3)
+            # cam_calib["K"] = calib_info["K"] # calibration matrices (3, 3)
+            cam_calib["P"] = calib_info["P"] # projection matrix (3, 4)
+            cam_calib["R"] = calib_info["R"] # rotation matrix (3, 3)
+            cam_calib["T"] = calib_info["T"] # translation (3, 1)
+            # cam_calib["S"] = calib_info["size"] # image size {'height': 1086, 'width': 2040}
+        elif dataset == "kitti":
+            calib_info = yaml.load(f, Loader=yaml.FullLoader)
+            cam_calib["P"] = np.reshape([float(x) for x in calib_info["P_rect_00"].split(' ')], (3, 4)) # projection matrix (3, 4)
+            cam_calib["R"] = np.reshape([float(x) for x in calib_info["R_rect_00"].split(' ')], (3, 3)) # rotation matrix (3, 3)
+            cam_calib["T"] = np.reshape([float(x) for x in calib_info["T_00"].split(' ')], (3, 1)) # translation (3, 1) # TODO ace의 T와 shape 맞나 확인
 
     return cam_calib
 
 
-def parse_lidar_calib(file_path):
-    with open(file_path) as f:
-        calib_info = yaml.load(f, Loader=yaml.FullLoader)["lidar"]["rs80"]
+def parse_lidar_calib(dataset: str, file_path: str) -> dict:
+    """ pasre lidar calibration file(yaml)
 
+    Args:
+        dataset (str): dataset(ace / kitti)
+        file_path (str): file path to save result
+
+    Returns:
+        dict: parsed calibration values in dictionary format
+    """
+    with open(file_path) as f:
         lidar_calib = {}
-        lidar_calib["R"] = calib_info[
-            "R"
-        ]  # [[0.9999999553735484, -3.4906585032797835e-05, 0.000296705968304882], [3.4906583496307106e-05, 0.9999999993907651, 1.0356992118682821e-08], [-0.0002967059684856456, 8.271806125530277e-25, 0.9999999559827831]]
-        lidar_calib["t"] = calib_info["T"]  # [[1.5], [0.03], [2]] # translation vector
+
+        if dataset == "ace":
+            calib_info = yaml.load(f, Loader=yaml.FullLoader)["lidar"]["rs80"]
+        elif dataset == "kitti":
+            calib_info = yaml.load(f, Loader=yaml.FullLoader)
+
+        lidar_calib["R"] = calib_info["R"]  # rotation matrix(lidar->cam) (3, 3) # TODO 확인!
+        lidar_calib["t"] = calib_info["T"]  # translation vector (3, 1)
 
     return lidar_calib
