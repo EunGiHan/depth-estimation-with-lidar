@@ -10,5 +10,5 @@ jobs:
       - uses: actions/checkout@v2
       - uses: psf/black@stable
         with:
-          options: "--check --diff --color --config ./black_format.toml --extend-exclude ./dataset"
+          options: "--diff --color --config ./black_format.toml --extend-exclude ./dataset"
           # src: "./src"
