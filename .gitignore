@@ -2,5 +2,8 @@
 *.bin
 */__pycache__/*
 *.pyc
-dataset/KITTI/2011_09_26/*.txt
-dataset/*.png
+dataset/KITTI/**/*.png
+dataset/KITTI/**/*.txt
+dataset/ACE/**/*.png
+
+!dataset/KITTI/**/calib*
