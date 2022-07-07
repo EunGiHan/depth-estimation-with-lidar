@@ -32,32 +32,41 @@ Note:
 
 """
 
+
 @pytest.fixture
 def time():
     return (datetime.now()).strftime("%Y_%m_%d-%H_%M_%S")
+
 
 @pytest.fixture
 def file_paths():
     paths = {}
     # data paths
-    paths['cam_calib_file'] = "dataset/KITTI/2011_09_26/2011_09_26_calib/calib_cam_to_cam.txt"  # "dataset/ACE/calibration.yaml"
-    paths['lidar_calib_file'] = "dataset/KITTI/2011_09_26/2011_09_26_calib/calib_velo_to_cam.txt"  # "dataset/ACE/calibration.yaml"
-    paths['image_file'] = ""  # TODO 이미지 파일 경로
-    paths['point_cloud_file'] = "outputs/ex_lidar_raw.txt"  # TODO temp file (in real, *.pcd file)
+    paths[
+        "cam_calib_file"
+    ] = "dataset/KITTI/2011_09_26/2011_09_26_calib/calib_cam_to_cam.txt"  # "dataset/ACE/calibration.yaml"
+    paths[
+        "lidar_calib_file"
+    ] = "dataset/KITTI/2011_09_26/2011_09_26_calib/calib_velo_to_cam.txt"  # "dataset/ACE/calibration.yaml"
+    paths["image_file"] = ""  # TODO 이미지 파일 경로
+    paths["point_cloud_file"] = "outputs/ex_lidar_raw.txt"  # TODO temp file (in real, *.pcd file)
 
     # set save paths (without extension)
-    paths['depth_gt_save_path'] = "./outputs/depth_gt-" + time
-    paths['depth_map_save_path'] = "./outputs/depth_map-" + time
-    paths['eval_result_save_path'] = "./outputs/eval_result-" + time
+    paths["depth_gt_save_path"] = "./outputs/depth_gt-" + time
+    paths["depth_map_save_path"] = "./outputs/depth_map-" + time
+    paths["eval_result_save_path"] = "./outputs/eval_result-" + time
     return paths
+
 
 @pytest.fixture
 def cam_calib(file_paths):
-    return parse_cam_calib("kitti", file_paths['cam_calib_file'])
+    return parse_cam_calib("kitti", file_paths["cam_calib_file"])
+
 
 @pytest.fixture
 def lidar_calib(file_paths):
-    return parse_lidar_calib("kitti", file_paths['lidar_calib_file'])
+    return parse_lidar_calib("kitti", file_paths["lidar_calib_file"])
+
 
 P = cam_calib["P"]
 
@@ -72,7 +81,8 @@ T_velo_to_cam = np.concatenate([T_velo_to_cam, np.array([[0, 0, 0, 1]])], axis=0
 
 XYZ = [[0, 0, 0], [1, 4, 2], [4, 1, 2]]
 
-logger = logging.getLogger('parser')
+logger = logging.getLogger("parser")
+
 
 @pytest.mark.skip()
 def test_projection():
@@ -81,8 +91,9 @@ def test_projection():
     assert projected_pos.shape == (2,)
     # TODO 실제 데이터로 한 번 더 해보기
 
+
 @pytest.mark.skip()
-@pytest.mark.parametrize('point', XYZ)
+@pytest.mark.parametrize("point", XYZ)
 def test_make_projected_point(point):
     logger.info(sys._getframe(0).f_code.co_name)
     projected_pos, depth = project_point(point, P, R_cam, T_velo_to_cam)
@@ -90,6 +101,7 @@ def test_make_projected_point(point):
     # logging.info(depth_gt)
     assert projected_pos.shape == (3,)
     # TODO 실제 데이터로 한 번 더 해보기
+
 
 def test_log():
     logger.info(sys._getframe(0).f_code.co_name)

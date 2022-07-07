@@ -85,7 +85,11 @@ def parse_lidar_calib(dataset: str, file_path: str) -> dict:
         elif dataset == "kitti":
             calib_info = yaml.load(f, Loader=yaml.FullLoader)
 
-        lidar_calib["R"] = np.reshape([float(x) for x in calib_info["R"].split(" ")], (3, 3))  # rotation matrix(lidar->cam) (3, 3) # TODO 확인!
-        lidar_calib["t"] = np.reshape([float(x) for x in calib_info["T"].split(" ")], (3, 1))    # translation vector (3, 1)
+        lidar_calib["R"] = np.reshape(
+            [float(x) for x in calib_info["R"].split(" ")], (3, 3)
+        )  # rotation matrix(lidar->cam) (3, 3) # TODO 확인!
+        lidar_calib["t"] = np.reshape(
+            [float(x) for x in calib_info["T"].split(" ")], (3, 1)
+        )  # translation vector (3, 1)
 
     return lidar_calib
