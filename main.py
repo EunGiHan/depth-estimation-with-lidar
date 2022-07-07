@@ -31,9 +31,9 @@ from tools.transformations import *
 def main(time):
     # data paths
     cam_calib_file = "dataset/ACE/calibration.yaml"
-    lidar_calib_file="dataset/ACE/calibration.yaml"
-    image_file = "" # TODO 이미지 파일 경로
-    point_cloud_file = "" # TODO pcd 파일 경로
+    lidar_calib_file = "dataset/ACE/calibration.yaml"
+    image_file = ""  # TODO 이미지 파일 경로
+    point_cloud_file = ""  # TODO pcd 파일 경로
 
     # set save paths (without extension)
     depth_gt_save_path = "./outputs/depth_gt-" + time
@@ -46,8 +46,8 @@ def main(time):
 
     # get lidar raw data from dataset and project to image plane (+ save)
     depth_gt = project_lidar_to_cam(cam_calib, lidar_calib, point_cloud_file)
-    save_depth_txt(depth_gt, depth_gt_save_path+".txt")
-    save_depth_gt_img(depth_gt, depth_gt_save_path+".png")
+    save_depth_txt(depth_gt, depth_gt_save_path + ".txt")
+    save_depth_gt_img(depth_gt, depth_gt_save_path + ".png")
 
     # get image data from dataset
     image = None  # TODO 이미지 경로(image_file)에서 불러오기 / 데이터셋에 따라 다르다면 아래 주석을 풀어서 대신 사용
@@ -58,13 +58,13 @@ def main(time):
 
     # run depth estimation model and get estimates (+ save)
     # TODO 희평 님 이곳에 채워주세요. 리턴은 depth_map
-    depth_map = None # 이미지에서 뽑은 depth map 배열 (예) [[u, v, gt_depth], [u, v, gt_depth], ...]
-    save_depth_txt(depth_map, depth_map_save_path+".txt")
-    save_depth_map_img(depth_gt, depth_map_save_path+".png")
+    depth_map = None  # 이미지에서 뽑은 depth map 배열 (예) [[u, v, gt_depth], [u, v, gt_depth], ...]
+    save_depth_txt(depth_map, depth_map_save_path + ".txt")
+    save_depth_map_img(depth_gt, depth_map_save_path + ".png")
 
     # compare estimates & gt -> calculate errors with metrics (+ save)
     # TODO 현진 님 이곳에 채워주세요. 리턴은 eval_result
-    eval_result = None # 각종 수치자료 (예) dict {'SILog': xxxxx, 'MASE': xxxxx, ...}
+    eval_result = None  # 각종 수치자료 (예) dict {'SILog': xxxxx, 'MASE': xxxxx, ...}
     report = make_eval_report(eval_result)
     save_eval_result(report, eval_result_save_path)
 

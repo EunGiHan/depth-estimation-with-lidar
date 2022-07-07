@@ -6,7 +6,7 @@ from tools.parsers import *
 
 
 def convert_pcd_to_xyz(point_cloud_file: str):
-    """ read pcd file and convert lidar data to XYZ format
+    """read pcd file and convert lidar data to XYZ format
 
     Args:
         point_cloud_file (str): lidar raw data file path (*.pcd)
@@ -14,13 +14,13 @@ def convert_pcd_to_xyz(point_cloud_file: str):
     Returns:
         numpy.ndarray or list: format converted lidar data
     """
-    point_cloud = [] 
+    point_cloud = []
     # TODO 만들어주세요
     return point_cloud
 
 
 def project_lidar_to_cam(cam_calib: dict, lidar_calib: dict, point_cloud_file: str):
-    """ get all lidar [X, Y, Z] data and project them to image plane
+    """get all lidar [X, Y, Z] data and project them to image plane
 
     Args:
         cam_calib (dict): camera calibration
@@ -46,18 +46,18 @@ def project_lidar_to_cam(cam_calib: dict, lidar_calib: dict, point_cloud_file: s
     point_cloud = convert_pcd_to_xyz(point_cloud_file)
 
     # XYZ to uv & depth format
-    projections = [] # [[u, v, gt_depth], [u, v, gt_depth], [u, v, gt_depth], ...] for one image
+    projections = []  # [[u, v, gt_depth], [u, v, gt_depth], [u, v, gt_depth], ...] for one image
     for p in point_cloud:
         projected_pos, depth = project_point(p, P, R_cam, T_velo_to_cam)
         # TODO 마찬가지로 현재 구현은 KITTI 논문을 참고 하고 있음. 그 좌표축에 맞추고 있으므로, ACE도 동일한지는 따져봐야 함. PCD 변환 결과가 [x, y, z]라 가정함.
         np.append(projected_pos, [depth], axis=0)
         projections.append(projected_pos)
-    
+
     return np.array(projections)
 
 
 def project_point(lidar_point, P, R_cam, T_velo_to_cam):
-    """ get all lidar [X, Y, Z] data and project them to image plane
+    """get all lidar [X, Y, Z] data and project them to image plane
 
     Args:
         cam_calib (dict): camera calibration
@@ -73,10 +73,10 @@ def project_point(lidar_point, P, R_cam, T_velo_to_cam):
 
     y = np.matmul(P, R_cam)
     y = np.matmul(y, T_velo_to_cam)
-    y = np.matmul(y, x) # [sx, sy, s] 형태
+    y = np.matmul(y, x)  # [sx, sy, s] 형태
 
-    depth = y[-1] # 깊이 정보 s / TODO 맞나..?
-    y = y[:-1] / depth # [x, y] 형태
-    y = np.array(list(map(int, y))) # [x, y] 형태 & 이미지 평면이므로 소숫점 버림
+    depth = y[-1]  # 깊이 정보 s / TODO 맞나..?
+    y = y[:-1] / depth  # [x, y] 형태
+    y = np.array(list(map(int, y)))  # [x, y] 형태 & 이미지 평면이므로 소숫점 버림
 
     return y, depth

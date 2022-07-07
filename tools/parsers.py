@@ -7,15 +7,13 @@ import yaml
 
 
 def parse_args():
-    """ parse commandline arguements
+    """parse commandline arguements
 
     Returns:
         argparse.Namespace: argument parsing data
     """
     parser = argparse.ArgumentParser(description="depth estimation & evaluation")
-    parser.add_argument(
-        "--dataset", dest="dataset", help="kitti / ace", default="ace", type=str
-    )
+    parser.add_argument("--dataset", dest="dataset", help="kitti / ace", default="ace", type=str)
     parser.add_argument(
         "--visualize", dest="visualize", help="visualize results", default="False", type=bool
     )
@@ -31,7 +29,7 @@ def parse_args():
 
 
 def parse_cam_calib(dataset: str, file_path: str) -> dict:
-    """ pasre camera calibration file(yaml)
+    """pasre camera calibration file(yaml)
 
     Args:
         dataset (str): dataset(ace / kitti)
@@ -48,21 +46,27 @@ def parse_cam_calib(dataset: str, file_path: str) -> dict:
             # cam_calib["D"] = calib_info["D"] # distortion coeefficients (5, 1)
             # cam_calib["H"] = calib_info["H"] # (3, 3)
             # cam_calib["K"] = calib_info["K"] # calibration matrices (3, 3)
-            cam_calib["P"] = calib_info["P"] # projection matrix (3, 4)
-            cam_calib["R"] = calib_info["R"] # rotation matrix (3, 3)
-            cam_calib["T"] = calib_info["T"] # translation (3, 1)
+            cam_calib["P"] = calib_info["P"]  # projection matrix (3, 4)
+            cam_calib["R"] = calib_info["R"]  # rotation matrix (3, 3)
+            cam_calib["T"] = calib_info["T"]  # translation (3, 1)
             # cam_calib["S"] = calib_info["size"] # image size {'height': 1086, 'width': 2040}
         elif dataset == "kitti":
             calib_info = yaml.load(f, Loader=yaml.FullLoader)
-            cam_calib["P"] = np.reshape([float(x) for x in calib_info["P_rect_00"].split(' ')], (3, 4)) # projection matrix (3, 4)
-            cam_calib["R"] = np.reshape([float(x) for x in calib_info["R_rect_00"].split(' ')], (3, 3)) # rotation matrix (3, 3)
-            cam_calib["T"] = np.reshape([float(x) for x in calib_info["T_00"].split(' ')], (3, 1)) # translation (3, 1) # TODO ace의 T와 shape 맞나 확인
+            cam_calib["P"] = np.reshape(
+                [float(x) for x in calib_info["P_rect_00"].split(" ")], (3, 4)
+            )  # projection matrix (3, 4)
+            cam_calib["R"] = np.reshape(
+                [float(x) for x in calib_info["R_rect_00"].split(" ")], (3, 3)
+            )  # rotation matrix (3, 3)
+            cam_calib["T"] = np.reshape(
+                [float(x) for x in calib_info["T_00"].split(" ")], (3, 1)
+            )  # translation (3, 1) # TODO ace의 T와 shape 맞나 확인
 
     return cam_calib
 
 
 def parse_lidar_calib(dataset: str, file_path: str) -> dict:
-    """ pasre lidar calibration file(yaml)
+    """pasre lidar calibration file(yaml)
 
     Args:
         dataset (str): dataset(ace / kitti)
