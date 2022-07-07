@@ -1,0 +1,6 @@
+*.bag
+*.png
+*.bin
+*/__pycache__/*
+# *.txt
+dataset/KITTI/2011_09_26/*
