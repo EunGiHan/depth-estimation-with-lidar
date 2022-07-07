@@ -3,11 +3,30 @@ name: black-foramtter
 on: [push, pull_request, workflow_dispatch]
 
 jobs:
-  lint:
+  formatter:
     name: black formatter
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: psf/black@stable
+      - name: Checkout repository
+        uses: actions/checkout@v2
         with:
-          options: "--config ./black_format.toml --verbose" # --diff --color
+          ref: ${{ github.head_ref }}
+
+      - name: Black Formatter Check
+        uses: lgeiger/black-action@v1.0.1 #psf/black@stable
+        with:
+          # options: "--config ./black_format.toml --verbose" # --diff --color
+          args: . --config ./black_format.toml --verbose
+
+      - name: Check for modified files
+        id: git-check
+        run: echo ::set-output name=modified::$(if git diff-index --quiet HEAD --; then echo "false"; else echo "true"; fi)
+
+      - name: Push changes
+        if: steps.git-check.outputs.modified == 'true'
+        run: |
+          git config --global user.name 'EunGiHan'
+          git config --global user.email 'winterbloooom@gmail.com'
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git commit -am "Black format change"
+          git push
