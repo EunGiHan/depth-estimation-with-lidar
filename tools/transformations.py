@@ -50,7 +50,7 @@ def project_lidar_to_cam(cam_calib: dict, lidar_calib: dict, point_cloud_file: s
     for p in point_cloud:
         projected_pos, depth = project_point(p, P, R_cam, T_velo_to_cam)
         # TODO 마찬가지로 현재 구현은 KITTI 논문을 참고 하고 있음. 그 좌표축에 맞추고 있으므로, ACE도 동일한지는 따져봐야 함. PCD 변환 결과가 [x, y, z]라 가정함.
-        projected_pos = np.append(projected_pos, [depth], axis=0) # shape: (3,)
+        projected_pos = np.append(projected_pos, [depth], axis=0)  # shape: (3,)
         projections.append(projected_pos)
 
     return np.array(projections)
