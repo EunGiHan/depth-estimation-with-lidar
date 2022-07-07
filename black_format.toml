@@ -1,5 +1,4 @@
 [tool.black]
-config = "./black_format.toml"
 extend-exclude = "./dataset"
 line-length = 100
 target-version = ['py37']
