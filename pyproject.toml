@@ -5,5 +5,3 @@ target-version = ['py37']
 
 [tool.isort]
 profile = "black"
-
-[pytest]

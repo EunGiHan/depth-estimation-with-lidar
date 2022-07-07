@@ -21,7 +21,8 @@
 │   └─ utils.py                (output에 저장하기 등)
 ├─ .gitignore
 ├─ main.py                      (전체 파이프라인 실행)
-├─ pyproject.toml               (black formatter, pytest 등의 configuration)
+├─ pyproject.toml               (black formatter 등의 configuration)
+├─ pytest.ini                   (pytest의 configuration)
 ├─ README.md
 └─ requirements.txt             (프로젝트 수행을 위한 설치 패키지들)
 ```
@@ -39,14 +40,13 @@ Actions 탭에서 해당 action의 결과를 볼 수 있으며 여기서 어떤 
 
 참고로, 아래는 파이썬 문서 작성의 Google Style 가이드라인이다.
 ```python
-"""구글 스타일 문서화 문자열.
+"""모듈 설명 제목
 
-구글 스타일
+제목
 ===========
 
-제목을 정할 때는 기존과 같습니다. `==`로 제목을 `--`로 소제목을
-표현합니다. `참고해야 할 하이퍼링크`_ 가 있다면 아래에 url 정의를
-할 수 있습니다.
+소스코드 첫 시작 부분, import보다 먼저 쓰기
+`==`로 제목, `--`로 소제목
 
 .. _참고해야 할 하이퍼링크:
     https://soma0sd.tistory.com/
@@ -66,7 +66,9 @@ Todo:
 """
 
 def function(arg1: int, arg2: str) -> bool:
-    """함수의 문서화 문자열.
+    """함수 설명 제목
+
+    함수에 대한 설명문
 
     Args:
         arg1 (int): 사실 함수에 이미 매개변수 형태가 있다면
@@ -79,10 +81,17 @@ def function(arg1: int, arg2: str) -> bool:
             굳이 반복해서 쓸 필요는 없습니다.
 
     Raises:
-        AttributeError: 예외 설명이 필요한 경우.
+        예외명: 예외의 설명 (예 : 인수가 지정되지 않은 경우에 발생 )
 
     Yields:
-        출력값이 무언가를 나열하는 경우.
+        출력값이 무언가를 나열하는 경우.(리턴값의 데이터형: 리턴값에 대한 설명)
+
+    Examples:
+
+            함수의 사용법 기재
+
+            >>> print_test ("test", "message")
+               test message
 
     Note:
         함께 알아두어야 할 사항이 있는 경우.
