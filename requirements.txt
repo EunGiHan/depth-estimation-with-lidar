@@ -1,6 +1,6 @@
-아직 확정 아님!
-
-pyyaml (pip install pyyaml)
+pyyaml
 black
 isort
-pytest (pip3 install pytest)
+pytest
+open3d
+numpy

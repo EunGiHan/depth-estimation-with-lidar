@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import open3d
 
 from tools.parsers import *
 
@@ -15,8 +16,15 @@ def convert_pcd_to_xyz(point_cloud_file: str):
         numpy.ndarray or list: format converted lidar data
     """
     point_cloud = []
-    # TODO 만들어주세요
-    return point_cloud
+    data = open3d.io.read_point_cloud(point_cloud_file) 
+    for p in data.points:
+        swap = p[0]
+        p[0] = p[2]
+        p[2] = swap
+        # TODO numpy로 한번에 축 바꿀 수 있을 거 같은데?
+        print ('x: ' + str(p[0]) + ', y : ' + str(p[1]) + ', z : ' + str(p[2]))
+        point_cloud.append(p) # TODO 자료형 확인
+    return point_cloud # TODO 자료형 확인
 
 
 def project_lidar_to_cam(cam_calib: dict, lidar_calib: dict, point_cloud_file: str):
