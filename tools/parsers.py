@@ -8,8 +8,9 @@ import yaml
 Requirements: pip install pyyaml
 """
 
+
 def parse_args(time):
-    parser = argparse.ArgumentParser(description='depth estimation & evaluation')
+    parser = argparse.ArgumentParser(description="depth estimation & evaluation")
     parser.add_argument(
         "--dataset", dest="dataset", help="kitti / ace", default="dataset", type=str
     )
@@ -17,7 +18,11 @@ def parse_args(time):
         "--visualize", dest="visualize", help="visualize results", default="False", type=bool
     )
     parser.add_argument(
-        "--save_dir", dest="save_dir", help="path to save evaluation results", default="./outputs/eval_result_"+time, type=str
+        "--save_dir",
+        dest="save_dir",
+        help="path to save evaluation results",
+        default="./outputs/eval_result_" + time,
+        type=str,
     )
     # TODO 필요한 것 추가하기
 
@@ -31,7 +36,7 @@ def parse_args(time):
 
 def parse_cam_calib(file_path):
     with open(file_path) as f:
-        calib_info = yaml.load(f, Loader=yaml.FullLoader)['camera']['front']
+        calib_info = yaml.load(f, Loader=yaml.FullLoader)["camera"]["front"]
         # print(calib_info)
         """
         'D': [[-0.3713184655742523], [0.1894083454473062], [0.0017443421254646307], [0.00037526691609012837], [-0.06081438434204424]], 
@@ -44,25 +49,27 @@ def parse_cam_calib(file_path):
         'roi': {}, 
         'size': {'height': 1086, 'width': 2040}}
         """
-    
+
         cam_calib = {}
-        cam_calib['D'] = calib_info['D']
-        cam_calib['H'] = calib_info['H']
-        cam_calib['K'] = calib_info['K']
-        cam_calib['P'] = calib_info['P']
-        cam_calib['R'] = calib_info['R']
-        cam_calib['T'] = calib_info['T']
-        cam_calib['S'] = calib_info['size']
+        cam_calib["D"] = calib_info["D"]
+        cam_calib["H"] = calib_info["H"]
+        cam_calib["K"] = calib_info["K"]
+        cam_calib["P"] = calib_info["P"]
+        cam_calib["R"] = calib_info["R"]
+        cam_calib["T"] = calib_info["T"]
+        cam_calib["S"] = calib_info["size"]
 
     return cam_calib
 
 
 def parse_lidar_calib(file_path):
     with open(file_path) as f:
-        calib_info = yaml.load(f, Loader=yaml.FullLoader)['lidar']['rs80']
-    
+        calib_info = yaml.load(f, Loader=yaml.FullLoader)["lidar"]["rs80"]
+
         lidar_calib = {}
-        lidar_calib['R'] = calib_info['R'] # [[0.9999999553735484, -3.4906585032797835e-05, 0.000296705968304882], [3.4906583496307106e-05, 0.9999999993907651, 1.0356992118682821e-08], [-0.0002967059684856456, 8.271806125530277e-25, 0.9999999559827831]]
-        lidar_calib['t'] = calib_info['T'] # [[1.5], [0.03], [2]] # translation vector
+        lidar_calib["R"] = calib_info[
+            "R"
+        ]  # [[0.9999999553735484, -3.4906585032797835e-05, 0.000296705968304882], [3.4906583496307106e-05, 0.9999999993907651, 1.0356992118682821e-08], [-0.0002967059684856456, 8.271806125530277e-25, 0.9999999559827831]]
+        lidar_calib["t"] = calib_info["T"]  # [[1.5], [0.03], [2]] # translation vector
 
     return lidar_calib
