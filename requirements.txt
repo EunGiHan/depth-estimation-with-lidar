@@ -1,0 +1,6 @@
+아직 확정 아님!
+
+pyyaml (pip install pyyaml)
+black
+isort
+pytest (pip3 install pytest)
