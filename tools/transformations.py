@@ -9,6 +9,9 @@ def convert_lidar_to_cam(cam_calib_file, lidar_calib_file, raw_file_path, output
     cam_calib = parse_cam_calib(cam_calib_file)
     lidar_calib = parse_lidar_calib(lidar_calib_file)
 
+    y = []
+
+    # TODO 저장하는 것은 utils에 합칠까
     with open(raw_file_path) as raw_file:
         with open(output_file_path, 'w') as out_file:
             lines = raw_file.readlines()
@@ -16,9 +19,11 @@ def convert_lidar_to_cam(cam_calib_file, lidar_calib_file, raw_file_path, output
                 lidar_point = line.strip().split(" ") # TODO TXT를 한 포인트씩 읽어오는 부분 여기에 추가
                 lidar_point = [float(p) for p in lidar_point]
                 projected_point = transform_lidar_to_cam(lidar_point, cam_calib, lidar_calib)[:-1] #[x, y]
+                y.append(projected_point)
                 projected_point_str = ' '.join(str(s) for s in projected_point) + '\n'
                 out_file.write(projected_point_str)
 
+    return y
 
 def transform_lidar_to_cam(lidar_point, cam_calib, lidar_calib):
     x = np.append(np.array(lidar_point), [1], axis=0)

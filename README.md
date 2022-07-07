@@ -2,6 +2,8 @@
 
 ## 폴더 구조
 ```
+├─ .github/workflows            (github actions 관련 파일)
+│   └─ black_formatter.yaml    (Black Formatter 적용)
 ├─ dataset/ (KITTI 데이터셋, 캘리브레이션 txt, 라이다 raw data, rosbag 등)
 ├─ evaluation_using_lidar/ (라이다 데이터를 활용한 추정 결과 평가)
 ├─ monocular_depth_estimation/ (단안카메라 깊이 추정 모델 관련)

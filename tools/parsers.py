@@ -1,11 +1,32 @@
 #!/usr/bin/env python
 
+import argparse, sys
 import numpy as np
 import yaml
 
 """
 Requirements: pip install pyyaml
 """
+
+def parse_args(time):
+    parser = argparse.ArgumentParser(description='depth estimation & evaluation')
+    parser.add_argument(
+        "--dataset", dest="dataset", help="kitti / ace", default="dataset", type=str
+    )
+    parser.add_argument(
+        "--visualize", dest="visualize", help="visualize results", default="False", type=bool
+    )
+    parser.add_argument(
+        "--save_dir", dest="save_dir", help="path to save evaluation results", default="./outputs/eval_result_"+time, type=str
+    )
+    # TODO 필요한 것 추가하기
+
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit()
+
+    args = parser.parse_args()
+    return args
 
 
 def parse_cam_calib(file_path):

@@ -1,0 +1,14 @@
+name: black-foramtter
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  lint:
+    name: black formatter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: psf/black@stable
+        with:
+          options: "--check --diff --color --config ./black_format.toml --extend-exclude ./dataset"
+          # src: "./src"
