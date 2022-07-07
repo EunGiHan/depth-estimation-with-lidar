@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import argparse, sys
+import argparse
+import sys
+
 import numpy as np
 import yaml
 
