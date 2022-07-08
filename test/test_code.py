@@ -46,10 +46,10 @@ def file_paths(time):
     # data paths
     paths[
         "cam_calib_file"
-    ] = "dataset/ACE/calibration.yaml" #"dataset/KITTI/2011_09_26/2011_09_26_calib/calib_cam_to_cam.txt"  # 
+    ] = "dataset/ACE/calibration.yaml"  # "dataset/KITTI/2011_09_26/2011_09_26_calib/calib_cam_to_cam.txt"  #
     paths[
         "lidar_calib_file"
-    ] = "dataset/ACE/calibration.yaml" #"dataset/KITTI/2011_09_26/2011_09_26_calib/calib_velo_to_cam.txt"  
+    ] = "dataset/ACE/calibration.yaml"  # "dataset/KITTI/2011_09_26/2011_09_26_calib/calib_velo_to_cam.txt"
     paths["image_file"] = ""  # TODO 이미지 파일 경로
     paths["point_cloud_file"] = "outputs/ex_point_cloud.pcd"
 
@@ -69,6 +69,7 @@ def cam_calib(file_paths):
 def lidar_calib(file_paths):
     return parse_lidar_calib("ace", file_paths["lidar_calib_file"])
 
+
 logger = logging.getLogger("logger")
 
 
@@ -78,17 +79,14 @@ class TestCalib:
     #     logger.info(sys._getframe(0).f_code.co_name)
     #     pass
 
-
     # @classmethod
     # def teardown_class(cls):
     #     logger.info(sys._getframe(0).f_code.co_name)
     #     pass
 
-
     @pytest.fixture
     def point_cloud(self, file_paths):
         yield convert_pcd_to_xyz(file_paths["point_cloud_file"])
-
 
     @pytest.mark.skip(reason="already verified")
     def test_convert_pcd_to_xyz(self, point_cloud):
@@ -97,7 +95,7 @@ class TestCalib:
 
     @pytest.mark.skip(reason="already verified")
     def test_in_image(self, cam_calib):
-        assert in_image([1000, 852], cam_calib['size'])
+        assert in_image([1000, 852], cam_calib["size"])
 
     @pytest.mark.skip(reason="fail if out-range point is picked")
     def test_projection(self, cam_calib, lidar_calib, point_cloud):
@@ -109,12 +107,16 @@ class TestCalib:
         logger.info("output point(xy)\t: " + str(projected_pos[:-1]))
         logger.info("depth: " + str(projected_pos[-1]))
 
-        assert in_image(projected_pos, cam_calib['size']) # 범위 벗어나면 Fail
+        assert in_image(projected_pos, cam_calib["size"])  # 범위 벗어나면 Fail
 
     @pytest.mark.skip(reason="already verified")
     def test_project_all_points(self, cam_calib, lidar_calib, point_cloud):
         projections = project_lidar_to_cam("ace", cam_calib, lidar_calib, point_cloud)
 
-        rows = np.bitwise_and(0<=projections[:,0], projections[:,0] <= cam_calib['size']['height']).sum() == len(projections)
-        cols = np.bitwise_and(0<=projections[:,1], projections[:,1] <= cam_calib['size']['width']).sum() == len(projections)
+        rows = np.bitwise_and(
+            0 <= projections[:, 0], projections[:, 0] <= cam_calib["size"]["height"]
+        ).sum() == len(projections)
+        cols = np.bitwise_and(
+            0 <= projections[:, 1], projections[:, 1] <= cam_calib["size"]["width"]
+        ).sum() == len(projections)
         assert np.bitwise_and(rows, cols)

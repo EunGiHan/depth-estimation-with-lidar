@@ -51,7 +51,7 @@ def parse_cam_calib(dataset: str, file_path: str) -> dict:
             cam_calib["P"] = calib_info["P"]  # projection matrix (3, 4)
             cam_calib["R"] = calib_info["R"]  # rotation matrix (3, 3)
             cam_calib["t"] = calib_info["T"]  # translation (3, 1)
-            cam_calib["size"] = calib_info["size"] # image size {'height': 1086, 'width': 2040}
+            cam_calib["size"] = calib_info["size"]  # image size {'height': 1086, 'width': 2040}
         elif dataset == "kitti":
             calib_info = yaml.load(f, Loader=yaml.FullLoader)
             cam_calib["P"] = np.reshape(
