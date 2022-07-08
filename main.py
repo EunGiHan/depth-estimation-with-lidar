@@ -18,6 +18,8 @@ Todo:
     * 빈칸들 채우기
     * TODO 표시된 부분 수정하기
     * calibration 관련 파일 검증하기! (tools/transformation.py와 parsers.py)
+    * 이미지 불러올 때 camera intrinsic 적용?!
+    * kitti의 lidar 불러오는 것 처리하기!
 """
 
 import sys
@@ -33,7 +35,7 @@ def main(time):
     cam_calib_file = "dataset/ACE/calibration.yaml"
     lidar_calib_file = "dataset/ACE/calibration.yaml"
     image_file = ""  # TODO 이미지 파일 경로
-    point_cloud_file = ""  # TODO pcd 파일 경로
+    point_cloud_file = "outputs/ex_point_cloud.pcd"
 
     # set save paths (without extension)
     depth_gt_save_path = "./outputs/depth_gt-" + time
@@ -45,7 +47,8 @@ def main(time):
     lidar_calib = parse_lidar_calib(command_args.dataset, lidar_calib_file)
 
     # get lidar raw data from dataset and project to image plane (+ save)
-    depth_gt = project_lidar_to_cam(cam_calib, lidar_calib, point_cloud_file)
+    point_cloud = convert_pcd_to_xyz(point_cloud_file) # pcd to XYZ format
+    depth_gt = project_lidar_to_cam(cam_calib, lidar_calib, point_cloud)
     save_depth_txt(depth_gt, depth_gt_save_path + ".txt")
     save_depth_gt_img(depth_gt, depth_gt_save_path + ".png")
 
