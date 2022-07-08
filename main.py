@@ -48,7 +48,7 @@ def main(time):
 
     # get lidar raw data from dataset and project to image plane (+ save)
     point_cloud = convert_pcd_to_xyz(point_cloud_file)  # pcd to XYZ format
-    depth_gt = project_lidar_to_cam(cam_calib, lidar_calib, point_cloud)
+    depth_gt = project_lidar_to_cam(command_args.dataset, cam_calib, lidar_calib, point_cloud)
     save_depth_txt(depth_gt, depth_gt_save_path + ".txt")
     save_depth_gt_img(depth_gt, depth_gt_save_path + ".png")
 
