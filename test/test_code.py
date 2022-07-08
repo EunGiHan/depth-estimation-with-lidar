@@ -1,14 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import logging
-import sys
-from datetime import datetime
-
-import numpy as np
-import pytest
-
-from tools.transformations import *
-
 """
 PyTest test funtions
 ====================
@@ -33,23 +24,34 @@ Note:
 """
 
 
+import logging
+import random
+import sys
+from datetime import datetime
+
+import numpy as np
+import pytest
+
+from tools.transformations import *
+
+
 @pytest.fixture
 def time():
     return (datetime.now()).strftime("%Y_%m_%d-%H_%M_%S")
 
 
 @pytest.fixture
-def file_paths():
+def file_paths(time):
     paths = {}
     # data paths
     paths[
         "cam_calib_file"
-    ] = "dataset/KITTI/2011_09_26/2011_09_26_calib/calib_cam_to_cam.txt"  # "dataset/ACE/calibration.yaml"
+    ] = "dataset/ACE/calibration.yaml"  # "dataset/KITTI/2011_09_26/2011_09_26_calib/calib_cam_to_cam.txt"  #
     paths[
         "lidar_calib_file"
-    ] = "dataset/KITTI/2011_09_26/2011_09_26_calib/calib_velo_to_cam.txt"  # "dataset/ACE/calibration.yaml"
+    ] = "dataset/ACE/calibration.yaml"  # "dataset/KITTI/2011_09_26/2011_09_26_calib/calib_velo_to_cam.txt"
     paths["image_file"] = ""  # TODO 이미지 파일 경로
-    paths["point_cloud_file"] = "outputs/ex_lidar_raw.txt"  # TODO temp file (in real, *.pcd file)
+    paths["point_cloud_file"] = "outputs/ex_point_cloud.pcd"
 
     # set save paths (without extension)
     paths["depth_gt_save_path"] = "./outputs/depth_gt-" + time
@@ -60,49 +62,61 @@ def file_paths():
 
 @pytest.fixture
 def cam_calib(file_paths):
-    return parse_cam_calib("kitti", file_paths["cam_calib_file"])
+    return parse_cam_calib("ace", file_paths["cam_calib_file"])
 
 
 @pytest.fixture
 def lidar_calib(file_paths):
-    return parse_lidar_calib("kitti", file_paths["lidar_calib_file"])
+    return parse_lidar_calib("ace", file_paths["lidar_calib_file"])
 
 
-P = cam_calib["P"]
-
-R_cam = np.zeros((4, 4))
-R_cam[0:3, 0:3] = cam_calib["R"]
-R_cam[3, 3] = 1
-# TODO 현재 구현은 KITTI 논문을 참고 하고 있음. 그러나 이 방식대로라면 cam_calib["T"]를 쓰지 않고 있음. 다시 한 번 캘리브레이션은 확인 필요함. KITTI는 스테레오 카메라를 여러 개 사용하기 때문에 단안카메라를 쓰는 Ace와는 다를 수 있음
-
-t_velo_to_cam = np.array(lidar_calib["t"])
-T_velo_to_cam = np.concatenate([lidar_calib["R"], t_velo_to_cam], axis=1)
-T_velo_to_cam = np.concatenate([T_velo_to_cam, np.array([[0, 0, 0, 1]])], axis=0)
-
-XYZ = [[0, 0, 0], [1, 4, 2], [4, 1, 2]]
-
-logger = logging.getLogger("parser")
+logger = logging.getLogger("logger")
 
 
-@pytest.mark.skip()
-def test_projection():
-    logger.info(sys._getframe(0).f_code.co_name)
-    projected_pos, depth = project_point([1, 1, 0], P, R_cam, T_velo_to_cam)
-    assert projected_pos.shape == (2,)
-    # TODO 실제 데이터로 한 번 더 해보기
+class TestCalib:
+    # @classmethod
+    # def setup_class(cls):
+    #     logger.info(sys._getframe(0).f_code.co_name)
+    #     pass
 
+    # @classmethod
+    # def teardown_class(cls):
+    #     logger.info(sys._getframe(0).f_code.co_name)
+    #     pass
 
-@pytest.mark.skip()
-@pytest.mark.parametrize("point", XYZ)
-def test_make_projected_point(point):
-    logger.info(sys._getframe(0).f_code.co_name)
-    projected_pos, depth = project_point(point, P, R_cam, T_velo_to_cam)
-    projected_pos = np.append(projected_pos, [depth], axis=0)
-    # logging.info(depth_gt)
-    assert projected_pos.shape == (3,)
-    # TODO 실제 데이터로 한 번 더 해보기
+    @pytest.fixture
+    def point_cloud(self, file_paths):
+        yield convert_pcd_to_xyz(file_paths["point_cloud_file"])
 
+    @pytest.mark.skip(reason="already verified")
+    def test_convert_pcd_to_xyz(self, point_cloud):
+        logger.info(sys._getframe(0).f_code.co_name)
+        assert point_cloud.shape == (121080, 3)
 
-def test_log():
-    logger.info(sys._getframe(0).f_code.co_name)
-    assert True
+    @pytest.mark.skip(reason="already verified")
+    def test_in_image(self, cam_calib):
+        assert in_image([1000, 852], cam_calib["size"])
+
+    @pytest.mark.skip(reason="fail if out-range point is picked")
+    def test_projection(self, cam_calib, lidar_calib, point_cloud):
+        logger.info(sys._getframe(0).f_code.co_name)
+        random_idx = random.randint(0, 121080)
+        projected_pos = project_point("ace", point_cloud[random_idx], cam_calib, lidar_calib)
+
+        logger.info("input point(xyz)\t: " + str(point_cloud[random_idx]))
+        logger.info("output point(xy)\t: " + str(projected_pos[:-1]))
+        logger.info("depth: " + str(projected_pos[-1]))
+
+        assert in_image(projected_pos, cam_calib["size"])  # 범위 벗어나면 Fail
+
+    @pytest.mark.skip(reason="already verified")
+    def test_project_all_points(self, cam_calib, lidar_calib, point_cloud):
+        projections = project_lidar_to_cam("ace", cam_calib, lidar_calib, point_cloud)
+
+        rows = np.bitwise_and(
+            0 <= projections[:, 0], projections[:, 0] <= cam_calib["size"]["height"]
+        ).sum() == len(projections)
+        cols = np.bitwise_and(
+            0 <= projections[:, 1], projections[:, 1] <= cam_calib["size"]["width"]
+        ).sum() == len(projections)
+        assert np.bitwise_and(rows, cols)
