@@ -14,12 +14,11 @@ Pipeline:
 
 Todo:
     * 아예 파라미터 클래스 만들까... proslam 클래스처럼
-    * pytest로 연계하기
     * 빈칸들 채우기
     * TODO 표시된 부분 수정하기
-    * calibration 관련 파일 검증하기! (tools/transformation.py와 parsers.py)
     * 이미지 불러올 때 camera intrinsic 적용?!
     * kitti의 lidar 불러오는 것 처리하기!
+    * txt, png 저장 이름도 이미지 & 라이다 데이터 이름과 맞출까?
 """
 
 import sys

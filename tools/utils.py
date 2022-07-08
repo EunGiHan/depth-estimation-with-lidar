@@ -1,19 +1,21 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
 
-def save_depth_txt(depth, save_path) -> None:
+
+def save_depth_txt(depth: np.ndarray, save_path: str) -> None:
     """save depth data in txt file
 
     Args:
         depth (numpy.ndarray): depth vectors for one frame ([x, y, depth]). It can be depth_gt(from lidar) or depth_map(from model)
         save_path (str): file path to save result
     """
-    result = []
-    for point in depth:
-        projected_pos = point[:-1]
-        depth = point[-1]
-        info = " ".join(str(coord) for coord in projected_pos) + " " + str(depth) + "\n"
-        result.append(info)
+    result = ""
+    for d in depth:
+        projected_pos = d[:-1]
+        depth = d[-1]
+        point = " ".join(str(int(coord)) for coord in projected_pos) + " " + str(depth) + "\n"
+        result += point
 
     with open(save_path, "w") as f:
         f.write(result)
@@ -31,7 +33,7 @@ def save_depth_overlap_img(depth_gt, depth_map, save_path) -> None:
     pass
 
 
-def save_eval_result(eval_result, save_path) -> None:
+def save_eval_result(eval_result: str, save_path: str) -> None:
     """save evaluation results in txt file
 
     Args:
@@ -46,7 +48,7 @@ def make_eval_report(eval_result: dict) -> str:
     """make evaluation report in string
 
     Args:
-        eval_result (str): dictionary saving evaluation results
+        eval_result (dict): dictionary saving evaluation results
 
     Returns:
         str: report text to show in terminal and save in txt file

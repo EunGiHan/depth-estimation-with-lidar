@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import logging
+
 import numpy as np
 import open3d
 
@@ -47,6 +49,8 @@ def project_lidar_to_cam(
     Todo:
         * 매번 캘리브레이션 정보를 넘기는 것은 비효율적으로 보임!
         * PCD 시각화해보고, 카메라 영역 외 필터링이 맞게 되고 있는지 확인해보기
+        * depth가 음수가 나오진 않는지 확인해보기
+        * sort 해서 반환할까
     """
     # projections = [project_point(dataset, p, cam_calib, lidar_calib) for p in point_cloud] # 이미지 크기 벗어나는 것 잘라내기 위해 아래처럼 반복문으로 만듦
     projections = []
@@ -55,7 +59,7 @@ def project_lidar_to_cam(
         if in_image(projected_point, cam_calib["size"]):
             projections.append(projected_point)  # 이미지 크기를 벗어난 것을 걸러냄
 
-    print("# of projected lidar points: " + str(len(projections)) + " / " + str(len(point_cloud)))
+    logging.info("# of projected lidar points: " + str(len(projections)) + " / " + str(len(point_cloud)))
     return np.array(projections)
 
 
@@ -98,9 +102,9 @@ def project_point(dataset: str, lidar_point: np.ndarray, cam_calib: dict, lidar_
         cam = np.matmul(cam, ego)  # (3, 4) X (4, 1) -> (3, 1) / [sx, sy, s]
 
         # check coordinate systems
-        # print("lidar coordinate:\t", lidar_point, "\t", lidar_point.shape)
-        # print("ego coordinate:\t", ego, "\t", ego.shape)
-        # print("cam coordinate:\t", cam, "\t", cam.shape)
+        # logging.info("lidar coordinate:\t", lidar_point, "\t", lidar_point.shape)
+        # logging.info("ego coordinate:\t", ego, "\t", ego.shape)
+        # logging.info("cam coordinate:\t", cam, "\t", cam.shape)
 
     elif dataset == "kitti":  # TODO 검증 필요!
         P = cam_calib["P"]
@@ -122,7 +126,7 @@ def project_point(dataset: str, lidar_point: np.ndarray, cam_calib: dict, lidar_
     # 소숫점 버린 형태로 주긴 하지만 나중에 접근 시에는 int로 다시 변환을 하긴 해야 함
 
     # check transformation result
-    # print("depth:\t", str(depth))
-    # print("x_im:\t", str(cam[0]), "\ty_im:\t", str(cam[1]))
+    # logging.info("depth:\t", str(depth))
+    # logging.info("x_im:\t", str(cam[0]), "\ty_im:\t", str(cam[1]))
 
     return cam

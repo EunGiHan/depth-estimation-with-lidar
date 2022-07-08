@@ -25,6 +25,7 @@ Note:
 
 
 import logging
+import os.path
 import random
 import sys
 from datetime import datetime
@@ -33,6 +34,7 @@ import numpy as np
 import pytest
 
 from tools.transformations import *
+from tools.utils import *
 
 
 @pytest.fixture
@@ -69,6 +71,9 @@ def cam_calib(file_paths):
 def lidar_calib(file_paths):
     return parse_lidar_calib("ace", file_paths["lidar_calib_file"])
 
+@pytest.fixture
+def point_cloud(file_paths):
+    return convert_pcd_to_xyz(file_paths["point_cloud_file"])
 
 logger = logging.getLogger("logger")
 
@@ -84,9 +89,7 @@ class TestCalib:
     #     logger.info(sys._getframe(0).f_code.co_name)
     #     pass
 
-    @pytest.fixture
-    def point_cloud(self, file_paths):
-        yield convert_pcd_to_xyz(file_paths["point_cloud_file"])
+    
 
     @pytest.mark.skip(reason="already verified")
     def test_convert_pcd_to_xyz(self, point_cloud):
@@ -95,11 +98,13 @@ class TestCalib:
 
     @pytest.mark.skip(reason="already verified")
     def test_in_image(self, cam_calib):
+        logger.info(sys._getframe(0).f_code.co_name)
         assert in_image([1000, 852], cam_calib["size"])
 
     @pytest.mark.skip(reason="fail if out-range point is picked")
     def test_projection(self, cam_calib, lidar_calib, point_cloud):
         logger.info(sys._getframe(0).f_code.co_name)
+
         random_idx = random.randint(0, 121080)
         projected_pos = project_point("ace", point_cloud[random_idx], cam_calib, lidar_calib)
 
@@ -107,10 +112,12 @@ class TestCalib:
         logger.info("output point(xy)\t: " + str(projected_pos[:-1]))
         logger.info("depth: " + str(projected_pos[-1]))
 
-        assert in_image(projected_pos, cam_calib["size"])  # 범위 벗어나면 Fail
+        assert in_image(projected_pos, cam_calib["size"]), "out of image size"
 
     @pytest.mark.skip(reason="already verified")
     def test_project_all_points(self, cam_calib, lidar_calib, point_cloud):
+        logger.info(sys._getframe(0).f_code.co_name)
+
         projections = project_lidar_to_cam("ace", cam_calib, lidar_calib, point_cloud)
 
         rows = np.bitwise_and(
@@ -120,3 +127,10 @@ class TestCalib:
             0 <= projections[:, 1], projections[:, 1] <= cam_calib["size"]["width"]
         ).sum() == len(projections)
         assert np.bitwise_and(rows, cols)
+
+def test_depth_save(point_cloud, cam_calib, lidar_calib, file_paths):
+    logger.info(sys._getframe(0).f_code.co_name)
+    depth_gt = project_lidar_to_cam("ace", cam_calib, lidar_calib, point_cloud)
+    save_depth_txt(depth_gt, file_paths['depth_gt_save_path'] + ".txt")
+    assert os.path.isfile(file_paths['depth_gt_save_path'] + ".txt") and os.path.getsize(file_paths['depth_gt_save_path'] + ".txt") > 0
+    os.remove(file_paths['depth_gt_save_path'] + ".txt")
