@@ -59,7 +59,9 @@ def project_lidar_to_cam(
         if in_image(projected_point, cam_calib["size"]):
             projections.append(projected_point)  # 이미지 크기를 벗어난 것을 걸러냄
 
-    logging.info("# of projected lidar points: " + str(len(projections)) + " / " + str(len(point_cloud)))
+    logging.info(
+        "# of projected lidar points: " + str(len(projections)) + " / " + str(len(point_cloud))
+    )
     return np.array(projections)
 
 

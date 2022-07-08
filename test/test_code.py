@@ -71,9 +71,11 @@ def cam_calib(file_paths):
 def lidar_calib(file_paths):
     return parse_lidar_calib("ace", file_paths["lidar_calib_file"])
 
+
 @pytest.fixture
 def point_cloud(file_paths):
     return convert_pcd_to_xyz(file_paths["point_cloud_file"])
+
 
 logger = logging.getLogger("logger")
 
@@ -88,8 +90,6 @@ class TestCalib:
     # def teardown_class(cls):
     #     logger.info(sys._getframe(0).f_code.co_name)
     #     pass
-
-    
 
     @pytest.mark.skip(reason="already verified")
     def test_convert_pcd_to_xyz(self, point_cloud):
@@ -128,9 +128,13 @@ class TestCalib:
         ).sum() == len(projections)
         assert np.bitwise_and(rows, cols)
 
+
 def test_depth_save(point_cloud, cam_calib, lidar_calib, file_paths):
     logger.info(sys._getframe(0).f_code.co_name)
     depth_gt = project_lidar_to_cam("ace", cam_calib, lidar_calib, point_cloud)
-    save_depth_txt(depth_gt, file_paths['depth_gt_save_path'] + ".txt")
-    assert os.path.isfile(file_paths['depth_gt_save_path'] + ".txt") and os.path.getsize(file_paths['depth_gt_save_path'] + ".txt") > 0
-    os.remove(file_paths['depth_gt_save_path'] + ".txt")
+    save_depth_txt(depth_gt, file_paths["depth_gt_save_path"] + ".txt")
+    assert (
+        os.path.isfile(file_paths["depth_gt_save_path"] + ".txt")
+        and os.path.getsize(file_paths["depth_gt_save_path"] + ".txt") > 0
+    )
+    os.remove(file_paths["depth_gt_save_path"] + ".txt")
