@@ -1,16 +1,16 @@
-from depth_estimation.models import depther
+# for model size
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from depth_estimation.core import add_prefix
-from depth_estimation.ops import resize
-from depth_estimation.models import builder
+from depth_estimation.models import builder, depther
 from depth_estimation.models.builder import DEPTHER
+from depth_estimation.ops import resize
+
 from .base import BaseDepther
 
-# for model size
-import numpy as np
 
 @DEPTHER.register_module()
 class DepthEncoderDecoder(BaseDepther):
@@ -19,18 +19,21 @@ class DepthEncoderDecoder(BaseDepther):
     EncoderDecoder typically consists of backbone, (neck) and decode_head.
     """
 
-    def __init__(self,
-                 backbone,
-                 decode_head,
-                 neck=None,
-                 train_cfg=None,
-                 test_cfg=None,
-                 pretrained=None,
-                 init_cfg=None):
+    def __init__(
+        self,
+        backbone,
+        decode_head,
+        neck=None,
+        train_cfg=None,
+        test_cfg=None,
+        pretrained=None,
+        init_cfg=None,
+    ):
         super(DepthEncoderDecoder, self).__init__(init_cfg)
         if pretrained is not None:
-            assert backbone.get('pretrained') is None, \
-                'both backbone and depther set pretrained weight'
+            assert (
+                backbone.get("pretrained") is None
+            ), "both backbone and depther set pretrained weight"
             backbone.pretrained = pretrained
         self.backbone = builder.build_backbone(backbone)
         self._init_decode_head(decode_head)
@@ -58,25 +61,25 @@ class DepthEncoderDecoder(BaseDepther):
     def encode_decode(self, img, img_metas, rescale=True):
         """Encode images with backbone and decode into a depth estimation
         map of the same size as input."""
-        
+
         x = self.extract_feat(img)
         out = self._decode_head_forward_test(x, img_metas)
         # crop the pred depth to the certain range.
         out = torch.clamp(out, min=self.decode_head.min_depth, max=self.decode_head.max_depth)
         if rescale:
             out = resize(
-                input=out,
-                size=img.shape[2:],
-                mode='bilinear',
-                align_corners=self.align_corners)
+                input=out, size=img.shape[2:], mode="bilinear", align_corners=self.align_corners
+            )
         return out
 
     def _decode_head_forward_train(self, img, x, img_metas, depth_gt, **kwargs):
         """Run forward function and calculate loss for decode head in
         training."""
         losses = dict()
-        loss_decode = self.decode_head.forward_train(img, x, img_metas, depth_gt, self.train_cfg, **kwargs)
-        losses.update(add_prefix(loss_decode, 'decode'))
+        loss_decode = self.decode_head.forward_train(
+            img, x, img_metas, depth_gt, self.train_cfg, **kwargs
+        )
+        losses.update(add_prefix(loss_decode, "decode"))
         return losses
 
     def _decode_head_forward_test(self, x, img_metas):
@@ -114,7 +117,7 @@ class DepthEncoderDecoder(BaseDepther):
 
         # the last of x saves the info from neck
         loss_decode = self._decode_head_forward_train(img, x, img_metas, depth_gt, **kwargs)
- 
+
         losses.update(loss_decode)
 
         return losses
@@ -142,22 +145,22 @@ class DepthEncoderDecoder(BaseDepther):
             Tensor: The output depth map.
         """
 
-        assert self.test_cfg.mode in ['slide', 'whole']
-        ori_shape = img_meta[0]['ori_shape']
-        assert all(_['ori_shape'] == ori_shape for _ in img_meta)
-        if self.test_cfg.mode == 'slide':
+        assert self.test_cfg.mode in ["slide", "whole"]
+        ori_shape = img_meta[0]["ori_shape"]
+        assert all(_["ori_shape"] == ori_shape for _ in img_meta)
+        if self.test_cfg.mode == "slide":
             raise NotImplementedError
         else:
             depth_pred = self.whole_inference(img, img_meta, rescale)
         output = depth_pred
-        flip = img_meta[0]['flip']
+        flip = img_meta[0]["flip"]
         if flip:
-            flip_direction = img_meta[0]['flip_direction']
-            assert flip_direction in ['horizontal', 'vertical']
-            if flip_direction == 'horizontal':
-                output = output.flip(dims=(3, ))
-            elif flip_direction == 'vertical':
-                output = output.flip(dims=(2, ))
+            flip_direction = img_meta[0]["flip_direction"]
+            assert flip_direction in ["horizontal", "vertical"]
+            if flip_direction == "horizontal":
+                output = output.flip(dims=(3,))
+            elif flip_direction == "vertical":
+                output = output.flip(dims=(2,))
 
         return output
 

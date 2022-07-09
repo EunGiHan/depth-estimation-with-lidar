@@ -1,25 +1,22 @@
-from logging import raiseExceptions
 import os.path as osp
 import warnings
 from collections import OrderedDict
 from functools import reduce
+from logging import raiseExceptions
 
 import mmcv
 import numpy as np
+import torch
+from depth.ops import resize
 from mmcv.utils import print_log
+from PIL import Image
 from prettytable import PrettyTable
 from torch.utils.data import Dataset
 
-from depth_estimation.core import pre_eval_to_metrics, metrics, eval_metrics
-from depth_estimation.utils import get_root_logger
+from depth_estimation.core import eval_metrics, metrics, pre_eval_to_metrics
 from depth_estimation.datasets.builder import DATASETS
 from depth_estimation.datasets.pipelines import Compose
-
-from depth.ops import resize
-
-from PIL import Image
-
-import torch
+from depth_estimation.utils import get_root_logger
 
 
 @DATASETS.register_module()

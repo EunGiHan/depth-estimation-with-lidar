@@ -2,13 +2,14 @@ import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 
+import matplotlib
+import matplotlib.pyplot as plt
 import mmcv
 import numpy as np
 import torch
 import torch.distributed as dist
 from mmcv.runner import BaseModule, auto_fp16
-import matplotlib.pyplot as plt
-import matplotlib
+
 from depth_estimation.utils import colorize
 
 
@@ -22,18 +23,17 @@ class BaseDepther(BaseModule, metaclass=ABCMeta):
     @property
     def with_neck(self):
         """bool: whether the depther has neck"""
-        return hasattr(self, 'neck') and self.neck is not None
+        return hasattr(self, "neck") and self.neck is not None
 
     @property
     def with_auxiliary_head(self):
         """bool: whether the depther has auxiliary head"""
-        return hasattr(self,
-                       'auxiliary_head') and self.auxiliary_head is not None
+        return hasattr(self, "auxiliary_head") and self.auxiliary_head is not None
 
     @property
     def with_decode_head(self):
         """bool: whether the depther has decode head"""
-        return hasattr(self, 'decode_head') and self.decode_head is not None
+        return hasattr(self, "decode_head") and self.decode_head is not None
 
     @abstractmethod
     def extract_feat(self, imgs):
@@ -71,22 +71,22 @@ class BaseDepther(BaseModule, metaclass=ABCMeta):
                 augs (multiscale, flip, etc.) and the inner list indicates
                 images in a batch.
         """
-        for var, name in [(imgs, 'imgs'), (img_metas, 'img_metas')]:
+        for var, name in [(imgs, "imgs"), (img_metas, "img_metas")]:
             if not isinstance(var, list):
-                raise TypeError(f'{name} must be a list, but got '
-                                f'{type(var)}')
+                raise TypeError(f"{name} must be a list, but got " f"{type(var)}")
         num_augs = len(imgs)
         if num_augs != len(img_metas):
-            raise ValueError(f'num of augmentations ({len(imgs)}) != '
-                             f'num of image meta ({len(img_metas)})')
+            raise ValueError(
+                f"num of augmentations ({len(imgs)}) != " f"num of image meta ({len(img_metas)})"
+            )
         # all images in the same aug batch all of the same ori_shape and pad
         # shape
         for img_meta in img_metas:
-            ori_shapes = [_['ori_shape'] for _ in img_meta]
+            ori_shapes = [_["ori_shape"] for _ in img_meta]
             assert all(shape == ori_shapes[0] for shape in ori_shapes)
-            img_shapes = [_['img_shape'] for _ in img_meta]
+            img_shapes = [_["img_shape"] for _ in img_meta]
             assert all(shape == img_shapes[0] for shape in img_shapes)
-            pad_shapes = [_['pad_shape'] for _ in img_meta]
+            pad_shapes = [_["pad_shape"] for _ in img_meta]
             assert all(shape == pad_shapes[0] for shape in pad_shapes)
 
         if num_augs == 1:
@@ -94,7 +94,7 @@ class BaseDepther(BaseModule, metaclass=ABCMeta):
         else:
             return self.aug_test(imgs, img_metas, **kwargs)
 
-    @auto_fp16(apply_to=('img', ))
+    @auto_fp16(apply_to=("img",))
     def forward(self, img, img_metas, return_loss=True, **kwargs):
         """Calls either :func:`forward_train` or :func:`forward_test` depending
         on whether ``return_loss`` is ``True``.
@@ -142,7 +142,7 @@ class BaseDepther(BaseModule, metaclass=ABCMeta):
         real_losses = {}
         log_imgs = {}
         for k, v in losses.items():
-            if 'img' in k:
+            if "img" in k:
                 log_imgs[k] = v
             else:
                 real_losses[k] = v
@@ -152,8 +152,9 @@ class BaseDepther(BaseModule, metaclass=ABCMeta):
         outputs = dict(
             loss=loss,
             log_vars=log_vars,
-            num_samples=len(data_batch['img_metas']),
-            log_imgs=log_imgs)
+            num_samples=len(data_batch["img_metas"]),
+            log_imgs=log_imgs,
+        )
 
         return outputs
 
@@ -187,13 +188,11 @@ class BaseDepther(BaseModule, metaclass=ABCMeta):
             elif isinstance(loss_value, list):
                 log_vars[loss_name] = sum(_loss.mean() for _loss in loss_value)
             else:
-                raise TypeError(
-                    f'{loss_name} is not a tensor or list of tensors')
+                raise TypeError(f"{loss_name} is not a tensor or list of tensors")
 
-        loss = sum(_value for _key, _value in log_vars.items()
-                   if 'loss' in _key)
+        loss = sum(_value for _key, _value in log_vars.items() if "loss" in _key)
 
-        log_vars['loss'] = loss
+        log_vars["loss"] = loss
         for loss_name, loss_value in log_vars.items():
             # reduce loss when distributed training
             if dist.is_available() and dist.is_initialized():
@@ -203,14 +202,9 @@ class BaseDepther(BaseModule, metaclass=ABCMeta):
 
         return loss, log_vars
 
-    def show_result(self,
-                    img,
-                    result,
-                    win_name='',
-                    show=False,
-                    wait_time=0,
-                    out_file=None,
-                    format_only=False):
+    def show_result(
+        self, img, result, win_name="", show=False, wait_time=0, out_file=None, format_only=False
+    ):
         """Draw `result` over `img`.
 
         Args:
@@ -235,13 +229,16 @@ class BaseDepther(BaseModule, metaclass=ABCMeta):
 
         if format_only:
             if out_file is not None:
-                np.save(out_file, depth) # only save the value.
+                np.save(out_file, depth)  # only save the value.
         else:
             if out_file is not None:
-                depth = colorize(depth, vmin=self.decode_head.min_depth, vmax=self.decode_head.max_depth)
+                depth = colorize(
+                    depth, vmin=self.decode_head.min_depth, vmax=self.decode_head.max_depth
+                )
                 mmcv.imwrite(depth.squeeze(), out_file)
 
         if not (show or out_file):
-            warnings.warn('show==False and out_file is not specified, only '
-                          'result depth will be returned')
+            warnings.warn(
+                "show==False and out_file is not specified, only " "result depth will be returned"
+            )
             return depth

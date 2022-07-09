@@ -1,7 +1,9 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import collections
-from ..builder import PIPELINES
+
 from mmcv.utils import build_from_cfg
+
+from ..builder import PIPELINES
 
 
 @PIPELINES.register_module()

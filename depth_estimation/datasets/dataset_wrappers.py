@@ -3,6 +3,7 @@ from torch.utils.data.dataset import ConcatDataset as _ConcatDataset
 
 from .builder import DATASETS
 
+
 # TODO: may need change
 @DATASETS.register_module()
 class ConcatDataset(_ConcatDataset):

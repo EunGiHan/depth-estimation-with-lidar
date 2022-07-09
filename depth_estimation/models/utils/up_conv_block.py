@@ -1,9 +1,10 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import torch
 import torch.nn as nn
-from mmcv.cnn import ConvModule, build_upsample_layer, UPSAMPLE_LAYERS
-from depth.ops import Upsample
 import torch.utils.checkpoint as cp
+from depth.ops import Upsample
+from mmcv.cnn import UPSAMPLE_LAYERS, ConvModule, build_upsample_layer
+
 
 class BasicConvBlock(nn.Module):
     """Basic convolutional block for UNet.
@@ -35,21 +36,23 @@ class BasicConvBlock(nn.Module):
         plugins (dict): plugins for convolutional layers. Default: None.
     """
 
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 num_convs=2,
-                 stride=1,
-                 dilation=1,
-                 with_cp=False,
-                 conv_cfg=None,
-                 norm_cfg=dict(type='BN'),
-                 act_cfg=dict(type='ReLU'),
-                 dcn=None,
-                 plugins=None):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        num_convs=2,
+        stride=1,
+        dilation=1,
+        with_cp=False,
+        conv_cfg=None,
+        norm_cfg=dict(type="BN"),
+        act_cfg=dict(type="ReLU"),
+        dcn=None,
+        plugins=None,
+    ):
         super(BasicConvBlock, self).__init__()
-        assert dcn is None, 'Not implemented yet.'
-        assert plugins is None, 'Not implemented yet.'
+        assert dcn is None, "Not implemented yet."
+        assert plugins is None, "Not implemented yet."
 
         self.with_cp = with_cp
         convs = []
@@ -64,7 +67,9 @@ class BasicConvBlock(nn.Module):
                     padding=1 if i == 0 else dilation,
                     conv_cfg=conv_cfg,
                     norm_cfg=norm_cfg,
-                    act_cfg=act_cfg))
+                    act_cfg=act_cfg,
+                )
+            )
 
         self.convs = nn.Sequential(*convs)
 
@@ -110,20 +115,21 @@ class InterpConv(nn.Module):
                 scale_factor=2, mode='bilinear', align_corners=False).
     """
 
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 with_cp=False,
-                 norm_cfg=dict(type='BN'),
-                 act_cfg=dict(type='ReLU'),
-                 *,
-                 conv_cfg=None,
-                 conv_first=False,
-                 kernel_size=1,
-                 stride=1,
-                 padding=0,
-                 upsample_cfg=dict(
-                     scale_factor=2, mode='bilinear', align_corners=False)):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        with_cp=False,
+        norm_cfg=dict(type="BN"),
+        act_cfg=dict(type="ReLU"),
+        *,
+        conv_cfg=None,
+        conv_first=False,
+        kernel_size=1,
+        stride=1,
+        padding=0,
+        upsample_cfg=dict(scale_factor=2, mode="bilinear", align_corners=False),
+    ):
         super(InterpConv, self).__init__()
 
         self.with_cp = with_cp
@@ -135,7 +141,8 @@ class InterpConv(nn.Module):
             padding=padding,
             conv_cfg=conv_cfg,
             norm_cfg=norm_cfg,
-            act_cfg=act_cfg)
+            act_cfg=act_cfg,
+        )
         upsample = Upsample(**upsample_cfg)
         if conv_first:
             self.interp_upsample = nn.Sequential(conv, upsample)
@@ -190,24 +197,26 @@ class UpConvBlock(nn.Module):
         plugins (dict): plugins for convolutional layers. Default: None.
     """
 
-    def __init__(self,
-                 conv_block,
-                 in_channels,
-                 skip_channels,
-                 out_channels,
-                 num_convs=2,
-                 stride=1,
-                 dilation=1,
-                 with_cp=False,
-                 conv_cfg=None,
-                 norm_cfg=dict(type='BN'),
-                 act_cfg=dict(type='ReLU'),
-                 upsample_cfg=dict(type='InterpConv'),
-                 dcn=None,
-                 plugins=None):
+    def __init__(
+        self,
+        conv_block,
+        in_channels,
+        skip_channels,
+        out_channels,
+        num_convs=2,
+        stride=1,
+        dilation=1,
+        with_cp=False,
+        conv_cfg=None,
+        norm_cfg=dict(type="BN"),
+        act_cfg=dict(type="ReLU"),
+        upsample_cfg=dict(type="InterpConv"),
+        dcn=None,
+        plugins=None,
+    ):
         super(UpConvBlock, self).__init__()
-        assert dcn is None, 'Not implemented yet.'
-        assert plugins is None, 'Not implemented yet.'
+        assert dcn is None, "Not implemented yet."
+        assert plugins is None, "Not implemented yet."
 
         self.conv_block = conv_block(
             in_channels=2 * skip_channels,
@@ -220,7 +229,8 @@ class UpConvBlock(nn.Module):
             norm_cfg=norm_cfg,
             act_cfg=act_cfg,
             dcn=None,
-            plugins=None)
+            plugins=None,
+        )
         if upsample_cfg is not None:
             self.upsample = build_upsample_layer(
                 cfg=upsample_cfg,
@@ -228,7 +238,8 @@ class UpConvBlock(nn.Module):
                 out_channels=skip_channels,
                 with_cp=with_cp,
                 norm_cfg=norm_cfg,
-                act_cfg=act_cfg)
+                act_cfg=act_cfg,
+            )
         else:
             self.upsample = ConvModule(
                 in_channels,
@@ -238,7 +249,8 @@ class UpConvBlock(nn.Module):
                 padding=0,
                 conv_cfg=conv_cfg,
                 norm_cfg=norm_cfg,
-                act_cfg=act_cfg)
+                act_cfg=act_cfg,
+            )
 
     def forward(self, skip, x):
         """Forward function."""

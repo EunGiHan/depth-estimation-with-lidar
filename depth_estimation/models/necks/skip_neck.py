@@ -2,8 +2,8 @@
 import torch.nn as nn
 from mmcv.cnn import ConvModule, xavier_init
 
-from depth_estimation.ops import resize
 from depth_estimation.models.builder import NECKS
+from depth_estimation.ops import resize
 
 
 @NECKS.register_module()
@@ -22,10 +22,7 @@ class SkipNeck(nn.Module):
             Default: None.
     """
 
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 scales=[0.5, 1, 2, 4]):
+    def __init__(self, in_channels, out_channels, scales=[0.5, 1, 2, 4]):
         super(SkipNeck, self).__init__()
         assert isinstance(in_channels, list)
         self.in_channels = in_channels
@@ -37,15 +34,14 @@ class SkipNeck(nn.Module):
     def init_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                xavier_init(m, distribution='uniform')
+                xavier_init(m, distribution="uniform")
 
     def forward(self, inputs):
         assert len(inputs) == len(self.in_channels)
         outs = []
         for i in range(self.num_outs):
             if self.scales[i] != 1:
-                x_resize = resize(
-                    inputs[i], scale_factor=self.scales[i], mode='bilinear')
+                x_resize = resize(inputs[i], scale_factor=self.scales[i], mode="bilinear")
             else:
                 x_resize = inputs[i]
             outs.append(x_resize)

@@ -2,7 +2,8 @@
 import torch.nn as nn
 from mmcv.utils import Registry, build_from_cfg
 
-TRANSFORMER = Registry('Transformer')
+TRANSFORMER = Registry("Transformer")
+
 
 def build_transformer(cfg, default_args=None):
     """Builder for Transformer."""

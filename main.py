@@ -24,10 +24,10 @@ Todo:
 import sys
 from datetime import datetime
 
+from depth_estimation.inferencer import Inferencer
 from tools.parsers import *
 from tools.transformations import *
 from tools.utils import *
-from depth_estimation.inferencer import Inferencer
 
 
 def main(time):
@@ -68,7 +68,9 @@ def main(time):
     # TODO 희평 님 이곳에 채워주세요. 리턴은 depth_map
 
     inferencer = Inferencer(args=command_args)
-    depth_map = inferencer.infer() # 이미지에서 뽑은 depth map 배열 (예) [[u, v, gt_depth], [u, v, gt_depth], ...]
+    depth_map = (
+        inferencer.infer()
+    )  # 이미지에서 뽑은 depth map 배열 (예) [[u, v, gt_depth], [u, v, gt_depth], ...]
     # put image one by one
     # for img in images:
     #     output = inferencer.infer_single_img(img)
