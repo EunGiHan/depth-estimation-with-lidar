@@ -4,7 +4,7 @@ import logging
 from mmcv.utils import get_logger
 
 
-def get_root_logger(log_file=None, log_level=logging.INFO, name='mmcv'):
+def get_root_logger(log_file=None, log_level=logging.INFO, name="mmcv"):
     """Get root logger and add a keyword filter to it.
 
     The logger will be initialized if it has not been initialized. By default a

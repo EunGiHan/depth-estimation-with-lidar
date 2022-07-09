@@ -1,11 +1,13 @@
-import mmcv
-import torch
-import numpy as np
 import os.path as osp
+
+import mmcv
+import numpy as np
+import torch
 from depth.ops import resize
-from ..builder import PIPELINES
-from numpy.core.fromnumeric import shape
 from mmcv.utils import deprecated_api_warning
+from numpy.core.fromnumeric import shape
+
+from ..builder import PIPELINES
 
 
 @PIPELINES.register_module()

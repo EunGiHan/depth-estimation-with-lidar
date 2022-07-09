@@ -1,8 +1,8 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import math
-import torch.nn.functional as F
-import torch.nn as nn
 
+import torch.nn as nn
+import torch.nn.functional as F
 from mmcv.cnn import build_conv_layer, build_norm_layer
 from mmcv.runner.base_module import BaseModule
 from torch.nn.modules.utils import _pair as to_2tuple
@@ -38,11 +38,11 @@ class AdaptivePadding(nn.Module):
         >>> assert (out.shape[2], out.shape[3]) == (16, 32)
     """
 
-    def __init__(self, kernel_size=1, stride=1, dilation=1, padding='corner'):
+    def __init__(self, kernel_size=1, stride=1, dilation=1, padding="corner"):
 
         super(AdaptivePadding, self).__init__()
 
-        assert padding in ('same', 'corner')
+        assert padding in ("same", "corner")
 
         kernel_size = to_2tuple(kernel_size)
         stride = to_2tuple(stride)
@@ -59,22 +59,17 @@ class AdaptivePadding(nn.Module):
         stride_h, stride_w = self.stride
         output_h = math.ceil(input_h / stride_h)
         output_w = math.ceil(input_w / stride_w)
-        pad_h = max((output_h - 1) * stride_h +
-                    (kernel_h - 1) * self.dilation[0] + 1 - input_h, 0)
-        pad_w = max((output_w - 1) * stride_w +
-                    (kernel_w - 1) * self.dilation[1] + 1 - input_w, 0)
+        pad_h = max((output_h - 1) * stride_h + (kernel_h - 1) * self.dilation[0] + 1 - input_h, 0)
+        pad_w = max((output_w - 1) * stride_w + (kernel_w - 1) * self.dilation[1] + 1 - input_w, 0)
         return pad_h, pad_w
 
     def forward(self, x):
         pad_h, pad_w = self.get_pad_shape(x.size()[-2:])
         if pad_h > 0 or pad_w > 0:
-            if self.padding == 'corner':
+            if self.padding == "corner":
                 x = F.pad(x, [0, pad_w, 0, pad_h])
-            elif self.padding == 'same':
-                x = F.pad(x, [
-                    pad_w // 2, pad_w - pad_w // 2, pad_h // 2,
-                    pad_h - pad_h // 2
-                ])
+            elif self.padding == "same":
+                x = F.pad(x, [pad_w // 2, pad_w - pad_w // 2, pad_h // 2, pad_h - pad_h // 2])
         return x
 
 
@@ -104,18 +99,20 @@ class PatchEmbed(BaseModule):
             Default: None.
     """
 
-    def __init__(self,
-                 in_channels=3,
-                 embed_dims=768,
-                 conv_type='Conv2d',
-                 kernel_size=16,
-                 stride=None,
-                 padding='corner',
-                 dilation=1,
-                 bias=True,
-                 norm_cfg=None,
-                 input_size=None,
-                 init_cfg=None):
+    def __init__(
+        self,
+        in_channels=3,
+        embed_dims=768,
+        conv_type="Conv2d",
+        kernel_size=16,
+        stride=None,
+        padding="corner",
+        dilation=1,
+        bias=True,
+        norm_cfg=None,
+        input_size=None,
+        init_cfg=None,
+    ):
         super(PatchEmbed, self).__init__(init_cfg=init_cfg)
 
         self.embed_dims = embed_dims
@@ -128,10 +125,8 @@ class PatchEmbed(BaseModule):
 
         if isinstance(padding, str):
             self.adap_padding = AdaptivePadding(
-                kernel_size=kernel_size,
-                stride=stride,
-                dilation=dilation,
-                padding=padding)
+                kernel_size=kernel_size, stride=stride, dilation=dilation, padding=padding
+            )
             # disable the padding of conv
             padding = 0
         else:
@@ -146,7 +141,8 @@ class PatchEmbed(BaseModule):
             stride=stride,
             padding=padding,
             dilation=dilation,
-            bias=bias)
+            bias=bias,
+        )
 
         if norm_cfg is not None:
             self.norm = build_norm_layer(norm_cfg, embed_dims)[1]
@@ -167,10 +163,12 @@ class PatchEmbed(BaseModule):
                 input_size = (input_h, input_w)
 
             # https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html
-            h_out = (input_size[0] + 2 * padding[0] - dilation[0] *
-                     (kernel_size[0] - 1) - 1) // stride[0] + 1
-            w_out = (input_size[1] + 2 * padding[1] - dilation[1] *
-                     (kernel_size[1] - 1) - 1) // stride[1] + 1
+            h_out = (
+                input_size[0] + 2 * padding[0] - dilation[0] * (kernel_size[0] - 1) - 1
+            ) // stride[0] + 1
+            w_out = (
+                input_size[1] + 2 * padding[1] - dilation[1] * (kernel_size[1] - 1) - 1
+            ) // stride[1] + 1
             self.init_out_size = (h_out, w_out)
         else:
             self.init_input_size = None
@@ -197,6 +195,7 @@ class PatchEmbed(BaseModule):
             x = self.norm(x)
         return x, out_size
 
+
 # Modified from Pytorch-Image-Models
 class PatchEmbedSwin(BaseModule):
     """Image to Patch Embedding V2.
@@ -218,17 +217,19 @@ class PatchEmbedSwin(BaseModule):
             Default: None.
     """
 
-    def __init__(self,
-                 in_channels=3,
-                 embed_dims=768,
-                 conv_type=None,
-                 kernel_size=16,
-                 stride=16,
-                 padding=0,
-                 dilation=1,
-                 pad_to_patch_size=True,
-                 norm_cfg=None,
-                 init_cfg=None):
+    def __init__(
+        self,
+        in_channels=3,
+        embed_dims=768,
+        conv_type=None,
+        kernel_size=16,
+        stride=16,
+        padding=0,
+        dilation=1,
+        pad_to_patch_size=True,
+        norm_cfg=None,
+        init_cfg=None,
+    ):
         super(PatchEmbedSwin, self).__init__()
 
         self.embed_dims = embed_dims
@@ -246,14 +247,14 @@ class PatchEmbedSwin(BaseModule):
         elif isinstance(patch_size, tuple):
             if len(patch_size) == 1:
                 patch_size = to_2tuple(patch_size[0])
-            assert len(patch_size) == 2, \
-                f'The size of patch should have length 1 or 2, ' \
-                f'but got {len(patch_size)}'
+            assert len(patch_size) == 2, (
+                f"The size of patch should have length 1 or 2, " f"but got {len(patch_size)}"
+            )
 
         self.patch_size = patch_size
 
         # Use conv layer to embed
-        conv_type = conv_type or 'Conv2d'
+        conv_type = conv_type or "Conv2d"
         self.projection = build_conv_layer(
             dict(type=conv_type),
             in_channels=in_channels,
@@ -261,7 +262,8 @@ class PatchEmbedSwin(BaseModule):
             kernel_size=kernel_size,
             stride=stride,
             padding=padding,
-            dilation=dilation)
+            dilation=dilation,
+        )
 
         # TODO: remove hack to 50% overlap
         # self.projection = build_conv_layer(
@@ -286,11 +288,9 @@ class PatchEmbedSwin(BaseModule):
         if self.pad_to_patch_size:
             # Modify H, W to multiple of patch size.
             if H % self.patch_size[0] != 0:
-                x = F.pad(
-                    x, (0, 0, 0, self.patch_size[0] - H % self.patch_size[0]))
+                x = F.pad(x, (0, 0, 0, self.patch_size[0] - H % self.patch_size[0]))
             if W % self.patch_size[1] != 0:
-                x = F.pad(
-                    x, (0, self.patch_size[1] - W % self.patch_size[1], 0, 0))
+                x = F.pad(x, (0, self.patch_size[1] - W % self.patch_size[1], 0, 0))
 
         x = self.projection(x)
         self.DH, self.DW = x.shape[2], x.shape[3]

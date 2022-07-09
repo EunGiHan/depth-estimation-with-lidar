@@ -1,8 +1,10 @@
 import json
+import os.path as osp
+
 import mmcv
 import numpy as np
-import os.path as osp
 from PIL import Image
+
 from ..builder import PIPELINES
 
 

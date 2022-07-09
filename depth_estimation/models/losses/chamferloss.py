@@ -2,6 +2,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 # from pytorch3d.loss import chamfer_distance
 from torch.nn.utils.rnn import pad_sequence
 
@@ -16,8 +17,7 @@ class BinsChamferLoss(nn.Module):
         loss_weight (float, optional): Weight of the loss. Defaults to 1.0.
     """
 
-    def __init__(self,
-                 loss_weight=0.1):
+    def __init__(self, loss_weight=0.1):
         super(BinsChamferLoss, self).__init__()
         self.loss_weight = loss_weight
 
@@ -30,18 +30,19 @@ class BinsChamferLoss(nn.Module):
         target_points = target_depth_maps.flatten(1)  # n, hwc
         mask = target_points.ge(1e-3)  # only valid ground truth points
         target_points = [p[m] for p, m in zip(target_points, mask)]
-        target_lengths = torch.Tensor([len(t) for t in target_points]).long().to(target_depth_maps.device)
-        target_points = pad_sequence(target_points, batch_first=True).unsqueeze(2)  # .shape = n, T, 1
+        target_lengths = (
+            torch.Tensor([len(t) for t in target_points]).long().to(target_depth_maps.device)
+        )
+        target_points = pad_sequence(target_points, batch_first=True).unsqueeze(
+            2
+        )  # .shape = n, T, 1
 
         loss, _ = chamfer_distance(x=input_points, y=target_points, y_lengths=target_lengths)
         return loss
 
-    def forward(self,
-                input,
-                target,
-                **kwargs):
+    def forward(self, input, target, **kwargs):
         """Forward function."""
-        
+
         chamfer_loss = self.bins_chamfer_loss(input, target)
         chamfer_loss = self.loss_weight * chamfer_loss
         return chamfer_loss
