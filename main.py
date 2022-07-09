@@ -48,8 +48,10 @@ def main(time):
     for i in range(1, 908):
         print(str(i) + " start!")
         # get lidar raw data from dataset and project to image plane (+ save)
-        point_cloud = convert_npy_to_xyz(npy_file+str(format(i, "04"))+".npy")  # npy to XYZ format
-        #point_cloud = convert_pcd_to_xyz(point_cloud_file)  # pcd to XYZ format
+        point_cloud = convert_npy_to_xyz(
+            npy_file + str(format(i, "04")) + ".npy"
+        )  # npy to XYZ format
+        # point_cloud = convert_pcd_to_xyz(point_cloud_file)  # pcd to XYZ format
         depth_gt = project_lidar_to_cam(command_args.dataset, cam_calib, lidar_calib, point_cloud)
         # save_depth_txt(depth_gt, depth_gt_save_path + ".txt")
         save_depth_gt_img(i, depth_gt, cam_calib, depth_gt_save_path)

@@ -25,6 +25,7 @@ def convert_pcd_to_xyz(point_cloud_file: str):
     # TODO 축 안 바꿔도 될 것 같은데?
     return points
 
+
 def convert_npy_to_xyz(point_cloud_file: str):
     """read pcd file and convert lidar data to XYZ format
 
@@ -42,7 +43,7 @@ def convert_npy_to_xyz(point_cloud_file: str):
             if np.isnan(x) or np.isnan(y) or np.isnan(z):
                 continue
             else:
-                points.append([x,y,z])
+                points.append([x, y, z])
 
     # points = np.array(points)
     # pcd = open3d.geometry.PointCloud()
