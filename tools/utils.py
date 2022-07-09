@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import cv2
 import numpy as np
+import open3d
+from cv2 import COLOR_BGR2GRAY
+from matplotlib import font_manager
 
 
 def save_depth_txt(depth: np.ndarray, save_path: str) -> None:
@@ -21,8 +25,22 @@ def save_depth_txt(depth: np.ndarray, save_path: str) -> None:
         f.write(result)
 
 
-def save_depth_gt_img(depth_gt, save_path) -> None:
-    pass
+def save_depth_gt_img(i: int, depth_gt: np.ndarray, cam_calib: dict, save_path: str) -> None:
+    img = np.zeros((cam_calib["size"]["height"], cam_calib["size"]["width"]), dtype=np.float32)
+    src = np.zeros((cam_calib["size"]["height"], cam_calib["size"]["width"]), dtype=np.uint8)
+    img2 = cv2.imread("data/2/" + str(format(i, "04")) + ".png")
+    img2 = cv2.cvtColor(img2, COLOR_BGR2GRAY)
+    for x, y, depth in depth_gt:
+        if img[int(y)][int(x)] == 0:
+            img[int(y)][int(x)] = depth
+            src[int(y)][int(x)] = img2[int(y)][int(x)]
+        else:
+            if img[int(y)][int(x)] > depth:
+                img[int(y)][int(x)] = depth  # 투영된 3D 좌표가 여러개라면, 가까운 점이 우선 순위로 매김
+
+    cv2.imshow("temp", src)
+    cv2.waitKey()
+    cv2.imwrite(save_path + str(format(i, "04")) + ".png", img)
 
 
 def save_depth_map_img(depth_map, save_path) -> None:

@@ -26,10 +26,36 @@ def convert_pcd_to_xyz(point_cloud_file: str):
     return points
 
 
+def convert_npy_to_xyz(point_cloud_file: str):
+    """read pcd file and convert lidar data to XYZ format
+
+    Args:
+        point_cloud_file (str): lidar raw data file path (*.pcd)
+
+    Returns:
+        numpy.ndarray: format converted lidar data
+    """
+    data = np.load(point_cloud_file)
+    points = []
+
+    for data_ in data:
+        for x, y, z, i in data_:
+            if np.isnan(x) or np.isnan(y) or np.isnan(z):
+                continue
+            else:
+                points.append([x, y, z])
+
+    # points = np.array(points)
+    # pcd = open3d.geometry.PointCloud()
+    # pcd.points = open3d.utility.Vector3dVector(points)
+    # open3d.io.write_point_cloud('/home/user/depth-estimation-with-lidar/outputs/'+'temp.pcd', pcd)
+    return points
+
+
 def in_image(point, size: dict) -> bool:
     """args 바꾸기"""
-    row = np.bitwise_and(0 <= point[0], point[0] <= size["height"])
-    col = np.bitwise_and(0 <= point[1], point[1] <= size["width"])
+    row = np.bitwise_and(0 <= point[0], point[0] < size["width"])
+    col = np.bitwise_and(0 <= point[1], point[1] < size["height"])
     return np.bitwise_and(row, col)
 
 
@@ -56,7 +82,7 @@ def project_lidar_to_cam(
     projections = []
     for p in point_cloud:
         projected_point = project_point(dataset, p, cam_calib, lidar_calib)
-        if in_image(projected_point, cam_calib["size"]):
+        if in_image(projected_point, cam_calib["size"]) and 0 <= projected_point[2]:
             projections.append(projected_point)  # 이미지 크기를 벗어난 것을 걸러냄
 
     logging.info(
@@ -97,6 +123,7 @@ def project_point(dataset: str, lidar_point: np.ndarray, cam_calib: dict, lidar_
 
         # ego coordinate -> camera coordinate
         ego = np.append(ego, [1], axis=0)  # (3,) -> (4,) / [x(forward) y(left) z(up) 1]
+
         P = np.array(cam_calib["P"])  # (3, 4) / intrinsic
         cam_ = np.concatenate([cam_calib["R"], cam_calib["t"]], axis=1)  # [R|t] matrix (3, 4)
         cam_ = np.concatenate([cam_, [[0, 0, 0, 1]]], axis=0)  # (3, 4) -> (4, 4)

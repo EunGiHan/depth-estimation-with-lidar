@@ -5,7 +5,13 @@
 dataset/KITTI/**/*.png
 dataset/KITTI/**/*.txt
 dataset/ACE/**/*.png
+<<<<<<< HEAD
 !dataset/KITTI/**/calib*
 depth_estimation/checkpoints/*.pth
 depth_estimation/checkpoints/*.pt
 outputs/*.txt
+=======
+outputs/
+!dataset/KITTI/**/calib*
+data/
+>>>>>>> 3dae2aa3aed9a19da3bc92775fcde80fcf16a7a1
