@@ -15,9 +15,10 @@ def parse_args():
     """
     parser = argparse.ArgumentParser(description="depth estimation & evaluation")
     parser.add_argument("--dataset", dest="dataset", help="kitti / ace", default="ace", type=str)
-    parser.add_argument(
-        "--visualize", dest="visualize", help="visualize results", default="False", type=bool
-    )
+    parser.add_argument("--visualize", dest="visualize", help="visualize results", default="False", type=bool)
+    parser.add_argument('--model_config', help='test config file path')
+    parser.add_argument('--checkpoint', help='checkpoint file')
+    
     # TODO 필요한 것 추가하기
 
     # if no arguments

@@ -27,6 +27,7 @@ from datetime import datetime
 from tools.parsers import *
 from tools.transformations import *
 from tools.utils import *
+from depth_estimation.inferencer import Inferencer
 
 
 def main(time):
@@ -52,7 +53,7 @@ def main(time):
     save_depth_gt_img(depth_gt, depth_gt_save_path + ".png")
 
     # get image data from dataset
-    image = None  # TODO 이미지 경로(image_file)에서 불러오기 / 데이터셋에 따라 다르다면 아래 주석을 풀어서 대신 사용
+    images = None  # TODO 이미지 경로(image_file)에서 불러오기 / 데이터셋에 따라 다르다면 아래 주석을 풀어서 대신 사용
     # if command_args.dataset == "ace":
     #     image = None
     # elif command_args.dataset == "kitti":
@@ -60,7 +61,13 @@ def main(time):
 
     # run depth estimation model and get estimates (+ save)
     # TODO 희평 님 이곳에 채워주세요. 리턴은 depth_map
-    depth_map = None  # 이미지에서 뽑은 depth map 배열 (예) [[u, v, gt_depth], [u, v, gt_depth], ...]
+
+    inferencer = Inferencer(args=command_args)
+    depth_map = inferencer.infer() # 이미지에서 뽑은 depth map 배열 (예) [[u, v, gt_depth], [u, v, gt_depth], ...]
+    # put image one by one
+    # for img in images:
+    #     output = inferencer.infer_single_img(img)
+    #     depth_map.append(output)
     save_depth_txt(depth_map, depth_map_save_path + ".txt")
     save_depth_map_img(depth_gt, depth_map_save_path + ".png")
 

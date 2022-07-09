@@ -5,5 +5,7 @@
 dataset/KITTI/**/*.png
 dataset/KITTI/**/*.txt
 dataset/ACE/**/*.png
-
 !dataset/KITTI/**/calib*
+depth_estimation/checkpoints/*.pth
+depth_estimation/checkpoints/*.pt
+outputs/*.txt
