@@ -5,5 +5,6 @@
 dataset/KITTI/**/*.png
 dataset/KITTI/**/*.txt
 dataset/ACE/**/*.png
-
+outputs/
 !dataset/KITTI/**/calib*
+data/

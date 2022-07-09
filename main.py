@@ -35,21 +35,24 @@ def main(time):
     lidar_calib_file = "dataset/ACE/calibration.yaml"
     image_file = ""  # TODO 이미지 파일 경로
     point_cloud_file = "outputs/ex_point_cloud.pcd"
+    npy_file = "data/1/"
 
     # set save paths (without extension)
-    depth_gt_save_path = "./outputs/depth_gt-" + time
+    depth_gt_save_path = "./outputs/2/"
     depth_map_save_path = "./outputs/depth_map-" + time
     eval_result_save_path = "./outputs/eval_result-" + time
 
     # parse calibration files -> get information
     cam_calib = parse_cam_calib(command_args.dataset, cam_calib_file)
     lidar_calib = parse_lidar_calib(command_args.dataset, lidar_calib_file)
-
-    # get lidar raw data from dataset and project to image plane (+ save)
-    point_cloud = convert_pcd_to_xyz(point_cloud_file)  # pcd to XYZ format
-    depth_gt = project_lidar_to_cam(command_args.dataset, cam_calib, lidar_calib, point_cloud)
-    save_depth_txt(depth_gt, depth_gt_save_path + ".txt")
-    save_depth_gt_img(depth_gt, depth_gt_save_path + ".png")
+    for i in range(1, 908):
+        print(str(i) + " start!")
+        # get lidar raw data from dataset and project to image plane (+ save)
+        point_cloud = convert_npy_to_xyz(npy_file+str(format(i, "04"))+".npy")  # npy to XYZ format
+        #point_cloud = convert_pcd_to_xyz(point_cloud_file)  # pcd to XYZ format
+        depth_gt = project_lidar_to_cam(command_args.dataset, cam_calib, lidar_calib, point_cloud)
+        # save_depth_txt(depth_gt, depth_gt_save_path + ".txt")
+        save_depth_gt_img(i, depth_gt, cam_calib, depth_gt_save_path)
 
     # get image data from dataset
     image = None  # TODO 이미지 경로(image_file)에서 불러오기 / 데이터셋에 따라 다르다면 아래 주석을 풀어서 대신 사용
