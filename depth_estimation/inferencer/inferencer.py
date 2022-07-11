@@ -68,7 +68,7 @@ class Inferencer:
         for batch_indices, data in zip(loader_indices, self.data_loader):
             with torch.no_grad():
                 result_depth = self.model(return_loss=False, **data)
-            # print(result_depth[0][0][0].max())
+            print(result_depth[0].shape)
             result_depths.append(result_depth[0])
             prog_bar.update()
         return result_depths
