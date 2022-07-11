@@ -47,9 +47,9 @@ def parse_cam_calib(dataset: str, file_path: str) -> dict:
 
         if dataset == "ace":
             calib_info = yaml.load(f, Loader=yaml.FullLoader)["camera"]["front"]
-            # cam_calib["D"] = calib_info["D"] # distortion coeefficients (5, 1)
-            # cam_calib["H"] = calib_info["H"] # (3, 3)
-            # cam_calib["K"] = calib_info["K"] # calibration matrices (3, 3)
+            cam_calib["D"] = calib_info["D"]  # distortion coeefficients (5, 1)
+            cam_calib["H"] = calib_info["H"]  # (3, 3)
+            cam_calib["K"] = calib_info["K"]  # calibration matrices (3, 3)
             cam_calib["P"] = calib_info["P"]  # projection matrix (3, 4)
             cam_calib["R"] = calib_info["R"]  # rotation matrix (3, 3)
             cam_calib["t"] = calib_info["T"]  # translation (3, 1)

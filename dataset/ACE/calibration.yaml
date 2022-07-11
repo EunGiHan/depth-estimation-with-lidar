@@ -56,8 +56,8 @@ camera:
     model: pinhole
     roi: {}
     size:
-      height: 1086
-      width: 2040
+      height: 543
+      width: 1020
 lidar:
   rs80:
     R:
