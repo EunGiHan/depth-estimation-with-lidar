@@ -44,7 +44,30 @@ def convert_npy_to_xyz(point_cloud_file: str):
                 continue
             else:
                 points.append([x, y, z])
+    # points = np.array(points)
+    # pcd = open3d.geometry.PointCloud()
+    # pcd.points = open3d.utility.Vector3dVector(points)
+    # open3d.io.write_point_cloud('/home/user/depth-estimation-with-lidar/outputs/'+'temp.pcd', pcd)
+    return points
 
+
+def convert_npy_to_xyz_only_depth(point_cloud_file: str):
+    """read pcd file and convert lidar data to XYZ format
+
+    Args:
+        point_cloud_file (str): lidar raw data file path (*.pcd)
+
+    Returns:
+        numpy.ndarray: format converted lidar data
+    """
+    data = np.load(point_cloud_file)
+    points = []
+
+    for x, data_ in enumerate(data):
+        temp = []
+        for y, z in enumerate(data_):
+            temp.append(z)
+        points.append(temp)
     # points = np.array(points)
     # pcd = open3d.geometry.PointCloud()
     # pcd.points = open3d.utility.Vector3dVector(points)
@@ -82,9 +105,8 @@ def project_lidar_to_cam(
     projections = []
     for p in point_cloud:
         projected_point = project_point(dataset, p, cam_calib, lidar_calib)
-        if in_image(projected_point, cam_calib["size"]) and 0 <= projected_point[2]:
+        if in_image(projected_point, cam_calib["size"]):
             projections.append(projected_point)  # 이미지 크기를 벗어난 것을 걸러냄
-
     logging.info(
         "# of projected lidar points: " + str(len(projections)) + " / " + str(len(point_cloud))
     )
@@ -119,10 +141,11 @@ def project_point(dataset: str, lidar_point: np.ndarray, cam_calib: dict, lidar_
     if dataset == "ace":
         # lidar coordinate -> ego coordinate
         ego = np.concatenate([lidar_calib["R"], lidar_calib["t"]], axis=1)  # [R|t] matrix
+        ego = np.concatenate([ego, [[0, 0, 0, 1]]], axis=0)  # (3, 4) -> (4, 4)
         ego = np.matmul(ego, lidar)  # [R|t] X [x y z 1]^T -> [x(forward) y(left) z(up)] (3,)
 
         # ego coordinate -> camera coordinate
-        ego = np.append(ego, [1], axis=0)  # (3,) -> (4,) / [x(forward) y(left) z(up) 1]
+        # ego = np.append(ego, [1], axis=0)  # (3,) -> (4,) / [x(forward) y(left) z(up) 1]
 
         P = np.array(cam_calib["P"])  # (3, 4) / intrinsic
         cam_ = np.concatenate([cam_calib["R"], cam_calib["t"]], axis=1)  # [R|t] matrix (3, 4)
@@ -149,7 +172,7 @@ def project_point(dataset: str, lidar_point: np.ndarray, cam_calib: dict, lidar_
 
     # [sx, sy, s(=depth)] -> [x, y, depth]
     depth = cam[-1]  # TODO 단위가 뭐야?????
-    cam[:-1] = cam[:-1] / depth  # [x, y], float
+    cam[:-1] = cam[:-1] // (depth * 2)  # [x, y], float
     cam[:-1] = np.array(list(map(int, cam[:-1])))  # [x, y], int, image pixel position
     # TODO 나중에 어차피 depth 합칠 거면 변환 여기서 의미가 없음.
     # 소숫점 버린 형태로 주긴 하지만 나중에 접근 시에는 int로 다시 변환을 하긴 해야 함
