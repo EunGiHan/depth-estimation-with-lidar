@@ -24,6 +24,7 @@ Todo:
 import sys
 from datetime import datetime
 
+from depth_estimation.inferencer import Inferencer
 from tools.parsers import *
 from tools.transformations import *
 from tools.utils import *
@@ -79,6 +80,7 @@ def main(time):
         eval_result = None  # 각종 수치자료 (예) dict {'SILog': xxxxx, 'MASE': xxxxx, ...}
         report = make_eval_report(resize_depth_gt, depth_map, cam_calib)
         # save_eval_result(report, eval_result_save_path)
+
 
 
 if __name__ == "__main__":

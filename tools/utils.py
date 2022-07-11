@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import cv2
-import depth
 import numpy as np
 import open3d
 from cv2 import COLOR_BGR2GRAY
@@ -24,6 +23,7 @@ def save_depth_txt(depth: np.ndarray, save_path: str) -> None:
 
     with open(save_path, "w") as f:
         f.write(result)
+
 
 
 def save_depth_gt_img(i: int, depth_gt: np.ndarray, cam_calib: dict, save_path: str) -> np.array:

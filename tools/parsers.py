@@ -18,6 +18,9 @@ def parse_args():
     parser.add_argument(
         "--visualize", dest="visualize", help="visualize results", default="False", type=bool
     )
+    parser.add_argument("--model_config", help="test config file path")
+    parser.add_argument("--checkpoint", help="checkpoint file")
+
     # TODO 필요한 것 추가하기
 
     # if no arguments
