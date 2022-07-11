@@ -25,7 +25,6 @@ def save_depth_txt(depth: np.ndarray, save_path: str) -> None:
         f.write(result)
 
 
-
 def save_depth_gt_img(i: int, depth_gt: np.ndarray, cam_calib: dict, save_path: str) -> np.array:
     img = np.zeros((cam_calib["size"]["height"], cam_calib["size"]["width"]), dtype=np.float32)
     backtorgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)

@@ -82,7 +82,6 @@ def main(time):
         # save_eval_result(report, eval_result_save_path)
 
 
-
 if __name__ == "__main__":
     time = (datetime.now()).strftime("%Y_%m_%d-%H_%M_%S")
     command_args = parse_args()
