@@ -48,22 +48,27 @@ def main(time):
     # set save paths (without extension)
     depth_gt_save_path = "./outputs/" + str(bag_num) + "/depth_gt-"
     depth_map_save_path = "./outputs/" + str(bag_num) + "/depth_map-"
-    eval_result_save_path = "./outputs/" + str(bag_num) + "/eval_result-"
+    eval_result_save_path = "./outputs/" + str(bag_num) + "/eval_result.txt"
 
     # parse calibration files -> get information
     cam_calib = parse_cam_calib(command_args.dataset, cam_calib_file)
     lidar_calib = parse_lidar_calib(command_args.dataset, lidar_calib_file)
     inferencer = Inferencer(args=command_args, dataload_path=infer_load)
     pred_depths = inferencer.infer()
-    eval_result = []  # 각종 수치자료 (예) dict {'SILog': xxxxx, 'MASE': xxxxx, ...}
+    final_report_str = ""
+    eval_result = []
+
+    
+    final_report_str += eval_header() # print도 함
 
     for i in range(1, len(pred_depths)):
-        print(str(i) + " start!")
+        if i % 50 == 0:
+            final_report_str += eval_header() # print도 함
+
         # get lidar raw data from dataset and project to image plane (+ save)
         lidar_point_cloud = convert_npy_to_xyz(
             lidar_npy_file + str(format(i, "04")) + ".npy"
         )  # npy to XYZ format
-        # point_cloud = convert_pcd_to_xyz(point_cloud_file)  # pcd to XYZ format
         depth_gt = project_lidar_to_cam(
             command_args.dataset, cam_calib, lidar_calib, lidar_point_cloud
         )
@@ -71,34 +76,30 @@ def main(time):
         save_depth_npy(depth_gt, depth_gt_save_path + str(format(i, "04")))
         resize_depth_gt = save_depth_gt_img(i, depth_gt, cam_calib, model_npy_file)
 
-        # get image data from dataset
-        images = None  # TODO 이미지 경로(image_file)에서 불러오기 / 데이터셋에 따라 다르다면 아래 주석을 풀어서 대신 사용
-        if command_args.dataset == "ace":
-            image = load_pred_img(i, cam_calib)
-        elif command_args.dataset == "kitti":
-            image = load_pred_img(i, cam_calib)
-
         # run depth estimation model and get estimates (+ save)
-        # TODO 희평 님 이곳에 채워주세요. 리턴은 depth_map
         # depth_map = inferencer.infer_single_img(image)
         depth_map = pred_depths[i][0]
-        print(depth_map.shape)
+        # print(depth_map.shape)
         save_depth_txt(depth_map, depth_map_save_path + str(format(i, "04")) + ".txt")
         save_depth_npy(depth_map, depth_map_save_path + str(format(i, "04")))
         save_depth_map_img(depth_gt, depth_map_save_path + ".png")
 
         # compare estimates & gt -> calculate errors with metrics (+ save)
-        # TODO 현진 님 이곳에 채워주세요. 리턴은 eval_result
-        report = make_eval_report(resize_depth_gt, depth_map, cam_calib)
+        report, report_str = make_eval_report(i, resize_depth_gt, depth_map, cam_calib)
+        print(report_str) # 터미널 출력
+        final_report_str += report_str
         eval_result.append(report)
-        # save_eval_result(report, eval_result_save_path)
 
-    dict_list = ["a1", "a2", "a3", "abs_rel", "rmse", "log_10", "rmse_log", "silog", "sq_rel"]
+    dict_list = ["a1", "a2", "a3", "rmse", "rmse_log", "silog", "abs_rel", "sq_rel", "log_10"]
     dict_eval = []
     for dic in dict_list:
         result = sum(item[dic] for item in eval_result) / len(eval_result)
         dict_eval.append(result)
-    print(dict_eval)
+    f_report = make_final_report_str(bag_num, dict_eval)
+    print(f_report) # 터미널 출력
+    final_report_str += f_report
+    
+    save_eval_result(final_report_str, eval_result_save_path)
 
 
 if __name__ == "__main__":

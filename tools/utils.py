@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import string
+
 import cv2
 import depth
 import numpy as np
@@ -104,7 +106,7 @@ def save_eval_result(eval_result: str, save_path: str) -> None:
         f.write(eval_result)
 
 
-def make_eval_report(depth_gt: np.array, depth_map: np.array, cam_calib: dict) -> str:
+def make_eval_report(img_num: int, depth_gt: np.array, depth_map: np.array, cam_calib: dict):
     """make evaluation report in string
 
     Args:
@@ -113,7 +115,6 @@ def make_eval_report(depth_gt: np.array, depth_map: np.array, cam_calib: dict) -
     Returns:
         str: report text to show in terminal and save in txt file
     """
-    # TODO 예쁘게 꾸미기, 숫자 단위 확인해서 소숫점 맞추기
     result = np.zeros((cam_calib["size"]["height"], cam_calib["size"]["width"]), dtype=np.float32)
     result_rev = np.zeros(
         (cam_calib["size"]["height"], cam_calib["size"]["width"]), dtype=np.float32
@@ -178,7 +179,32 @@ def make_eval_report(depth_gt: np.array, depth_map: np.array, cam_calib: dict) -
         silog=silog,
         sq_rel=sq_rel,
     )
-    # for (method, value) in eval_result.items():
-    #     report += "{0:<}\t\t{1:>2.3f}\n".format(method, value)
 
-    return report
+    return report, make_report_str(img_num, report)
+
+def make_report_str(img_num: int, report: dict) -> str:
+    info = "{0:>5}  {1:8.3f}  {2:8.3f}  {3:8.3f}  {4:8.3f}  {5:8.3f}  {6:8.3f}  {7:8.3f}  {8:8.3f}  {9:8.3f}\n".format(str(img_num).zfill(4), report['a1'], report['a2'], report['a3'], report['rmse'], report['rmse_log'], report['silog'], report['abs_rel'], report['sq_rel'], report['log_10'])
+    return info
+
+def make_final_report_str(bag_num: int, report: list):
+    f_report += "\n"
+    f_report = "="*96
+    f_report += "\n"
+    f_report += "{:^96}\n".format("Final Report")
+    f_report += "="*96
+    f_report += "\n"
+
+    f_report += "{0:>5}  {1:>8}  {2:>8}  {3:>8}  {4:>8}  {5:>8}  {6:>8}  {7:>8}  {8:>8}  {9:>8}\n".format("Bag", "thr1", "thr2", "thr3", 'RMSE', 'RMSElog', 'SILog', 'AbsRel', 'SqRel', 'log_10')
+    f_report += "{0:>5}  {1:8.3f}  {2:8.3f}  {3:8.3f}  {4:8.3f}  {5:8.3f}  {6:8.3f}  {7:8.3f}  {8:8.3f}  {9:8.3f}\n".format("0"+str(bag_num), report[0], report[1], report[2], report[3], report[4], report[5], report[6], report[7], report[8])
+    f_report += "="*96
+
+    return f_report
+
+def eval_header():
+    head = "-"*96
+    head += "\n"
+    head += "{0:>5}  {1:>8}  {2:>8}  {3:>8}  {4:>8}  {5:>8}  {6:>8}  {7:>8}  {8:>8}  {9:>8}\n".format("no.", "thr1", "thr2", "thr3", 'RMSE', 'RMSElog', 'SILog', 'AbsRel', 'SqRel', 'log_10')
+    head += "-"*96
+    print(head)
+    head += "\n"
+    return head
