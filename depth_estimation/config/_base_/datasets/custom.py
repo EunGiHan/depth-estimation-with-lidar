@@ -18,7 +18,7 @@ train_pipeline = [
 ]
 test_pipeline = [
     dict(type='LoadImageFromFile'),
-    dict(type='Resize', img_scale=(480, 640)),
+    #dict(type='Resize', img_scale=(480, 640)),
     dict(
         type='MultiScaleFlipAug',
         img_scale=(0, 0),
