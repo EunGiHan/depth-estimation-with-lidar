@@ -182,29 +182,62 @@ def make_eval_report(img_num: int, depth_gt: np.array, depth_map: np.array, cam_
 
     return report, make_report_str(img_num, report)
 
+
 def make_report_str(img_num: int, report: dict) -> str:
-    info = "{0:>5}  {1:8.3f}  {2:8.3f}  {3:8.3f}  {4:8.3f}  {5:8.3f}  {6:8.3f}  {7:8.3f}  {8:8.3f}  {9:8.3f}\n".format(str(img_num).zfill(4), report['a1'], report['a2'], report['a3'], report['rmse'], report['rmse_log'], report['silog'], report['abs_rel'], report['sq_rel'], report['log_10'])
+    info = "{0:>5}  {1:8.3f}  {2:8.3f}  {3:8.3f}  {4:8.3f}  {5:8.3f}  {6:8.3f}  {7:8.3f}  {8:8.3f}  {9:8.3f}\n".format(
+        str(img_num).zfill(4),
+        report["a1"],
+        report["a2"],
+        report["a3"],
+        report["rmse"],
+        report["rmse_log"],
+        report["silog"],
+        report["abs_rel"],
+        report["sq_rel"],
+        report["log_10"],
+    )
     return info
+
 
 def make_final_report_str(bag_num: int, report: list):
     f_report += "\n"
-    f_report = "="*96
+    f_report = "=" * 96
     f_report += "\n"
     f_report += "{:^96}\n".format("Final Report")
-    f_report += "="*96
+    f_report += "=" * 96
     f_report += "\n"
 
-    f_report += "{0:>5}  {1:>8}  {2:>8}  {3:>8}  {4:>8}  {5:>8}  {6:>8}  {7:>8}  {8:>8}  {9:>8}\n".format("Bag", "thr1", "thr2", "thr3", 'RMSE', 'RMSElog', 'SILog', 'AbsRel', 'SqRel', 'log_10')
-    f_report += "{0:>5}  {1:8.3f}  {2:8.3f}  {3:8.3f}  {4:8.3f}  {5:8.3f}  {6:8.3f}  {7:8.3f}  {8:8.3f}  {9:8.3f}\n".format("0"+str(bag_num), report[0], report[1], report[2], report[3], report[4], report[5], report[6], report[7], report[8])
-    f_report += "="*96
+    f_report += (
+        "{0:>5}  {1:>8}  {2:>8}  {3:>8}  {4:>8}  {5:>8}  {6:>8}  {7:>8}  {8:>8}  {9:>8}\n".format(
+            "Bag", "thr1", "thr2", "thr3", "RMSE", "RMSElog", "SILog", "AbsRel", "SqRel", "log_10"
+        )
+    )
+    f_report += "{0:>5}  {1:8.3f}  {2:8.3f}  {3:8.3f}  {4:8.3f}  {5:8.3f}  {6:8.3f}  {7:8.3f}  {8:8.3f}  {9:8.3f}\n".format(
+        "0" + str(bag_num),
+        report[0],
+        report[1],
+        report[2],
+        report[3],
+        report[4],
+        report[5],
+        report[6],
+        report[7],
+        report[8],
+    )
+    f_report += "=" * 96
 
     return f_report
 
+
 def eval_header():
-    head = "-"*96
+    head = "-" * 96
     head += "\n"
-    head += "{0:>5}  {1:>8}  {2:>8}  {3:>8}  {4:>8}  {5:>8}  {6:>8}  {7:>8}  {8:>8}  {9:>8}\n".format("no.", "thr1", "thr2", "thr3", 'RMSE', 'RMSElog', 'SILog', 'AbsRel', 'SqRel', 'log_10')
-    head += "-"*96
+    head += (
+        "{0:>5}  {1:>8}  {2:>8}  {3:>8}  {4:>8}  {5:>8}  {6:>8}  {7:>8}  {8:>8}  {9:>8}\n".format(
+            "no.", "thr1", "thr2", "thr3", "RMSE", "RMSElog", "SILog", "AbsRel", "SqRel", "log_10"
+        )
+    )
+    head += "-" * 96
     print(head)
     head += "\n"
     return head

@@ -58,12 +58,11 @@ def main(time):
     final_report_str = ""
     eval_result = []
 
-    
-    final_report_str += eval_header() # print도 함
+    final_report_str += eval_header()  # print도 함
 
     for i in range(1, len(pred_depths)):
         if i % 50 == 0:
-            final_report_str += eval_header() # print도 함
+            final_report_str += eval_header()  # print도 함
 
         # get lidar raw data from dataset and project to image plane (+ save)
         lidar_point_cloud = convert_npy_to_xyz(
@@ -86,7 +85,7 @@ def main(time):
 
         # compare estimates & gt -> calculate errors with metrics (+ save)
         report, report_str = make_eval_report(i, resize_depth_gt, depth_map, cam_calib)
-        print(report_str) # 터미널 출력
+        print(report_str)  # 터미널 출력
         final_report_str += report_str
         eval_result.append(report)
 
@@ -96,9 +95,9 @@ def main(time):
         result = sum(item[dic] for item in eval_result) / len(eval_result)
         dict_eval.append(result)
     f_report = make_final_report_str(bag_num, dict_eval)
-    print(f_report) # 터미널 출력
+    print(f_report)  # 터미널 출력
     final_report_str += f_report
-    
+
     save_eval_result(final_report_str, eval_result_save_path)
 
 
