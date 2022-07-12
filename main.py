@@ -50,9 +50,13 @@ def main(time):
     for i in range(1, 495):
         print(str(i) + " start!")
         # get lidar raw data from dataset and project to image plane (+ save)
-        lidar_point_cloud = convert_npy_to_xyz(lidar_npy_file+str(format(i, "04"))+".npy")  # npy to XYZ format
-        #point_cloud = convert_pcd_to_xyz(point_cloud_file)  # pcd to XYZ format
-        depth_gt = project_lidar_to_cam(command_args.dataset, cam_calib, lidar_calib, lidar_point_cloud)
+        lidar_point_cloud = convert_npy_to_xyz(
+            lidar_npy_file + str(format(i, "04")) + ".npy"
+        )  # npy to XYZ format
+        # point_cloud = convert_pcd_to_xyz(point_cloud_file)  # pcd to XYZ format
+        depth_gt = project_lidar_to_cam(
+            command_args.dataset, cam_calib, lidar_calib, lidar_point_cloud
+        )
         # save_depth_txt(depth_gt, depth_gt_save_path + ".txt")
         resize_depth_gt = save_depth_gt_img(i, depth_gt, cam_calib, depth_gt_save_path)
 
@@ -65,14 +69,16 @@ def main(time):
 
         # run depth estimation model and get estimates (+ save)
         # TODO 희평 님 이곳에 채워주세요. 리턴은 depth_map
-        depth_map = convert_npy_to_xyz_only_depth(model_npy_file+str(format(i, "04"))+".npy")  # 이미지에서 뽑은 depth map 배열 (예) [[u, v, gt_depth], [u, v, gt_depth], ...]
+        depth_map = convert_npy_to_xyz_only_depth(
+            model_npy_file + str(format(i, "04")) + ".npy"
+        )  # 이미지에서 뽑은 depth map 배열 (예) [[u, v, gt_depth], [u, v, gt_depth], ...]
         # save_depth_txt(depth_map, depth_map_save_path + ".txt")
         # save_depth_map_img(depth_gt, depth_map_save_path + ".png")
         # compare estimates & gt -> calculate errors with metrics (+ save)
         # TODO 현진 님 이곳에 채워주세요. 리턴은 eval_result
         eval_result = None  # 각종 수치자료 (예) dict {'SILog': xxxxx, 'MASE': xxxxx, ...}
         report = make_eval_report(resize_depth_gt, depth_map, cam_calib)
-        #save_eval_result(report, eval_result_save_path)
+        # save_eval_result(report, eval_result_save_path)
 
 
 if __name__ == "__main__":
