@@ -2,16 +2,22 @@
 *.bin
 */__pycache__/*
 *.pyc
+
 dataset/KITTI/**/*.png
 dataset/KITTI/**/*.txt
 dataset/ACE/**/*.png
-<<<<<<< HEAD
 !dataset/KITTI/**/calib*
-depth_estimation/checkpoints/*.pth
-depth_estimation/checkpoints/*.pt
-outputs/*.txt
-=======
-outputs/
-!dataset/KITTI/**/calib*
+
+!outputs/
+outputs/*
+!outputs/README.md
+# !outputs/1/depth_gt/depth_gt-0001.npy
+# !outputs/1/depth_gt/depth_gt-0001.png
+# !outputs/1/depth_gt/projection-0001.npy
+# !outputs/1/depth_map/depth_map-0001.npy
+# !outputs/1/depth_map/depth_map-0001.png
+# !outputs/1/raw_img/0001.img
+# !outputs/1/raw_pc/0001.npy
+# !outputs/1/eval_result.txt
+
 data/
->>>>>>> 3dae2aa3aed9a19da3bc92775fcde80fcf16a7a1
