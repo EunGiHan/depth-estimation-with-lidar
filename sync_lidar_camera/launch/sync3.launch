@@ -1,0 +1,4 @@
+
+<launch>
+   <node name="lidar" output="screen" pkg="sync_lidar_camera" type="temp.py" />
+</launch>

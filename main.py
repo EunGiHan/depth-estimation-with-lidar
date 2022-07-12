@@ -35,11 +35,11 @@ def main(time):
     lidar_calib_file = "dataset/ACE/calibration.yaml"
     image_file = ""  # TODO 이미지 파일 경로
     point_cloud_file = "outputs/ex_point_cloud.pcd"
-    lidar_npy_file = "data/1/"
+    lidar_npy_file = "data/4/"
     model_npy_file = "data/test/"
 
     # set save paths (without extension)
-    depth_gt_save_path = "./outputs/1/"
+    depth_gt_save_path = "./outputs/4/"
     depth_map_save_path = "./outputs/depth_map-" + time
     eval_result_save_path = "./outputs/eval_result-" + time
 
@@ -47,7 +47,7 @@ def main(time):
     cam_calib = parse_cam_calib(command_args.dataset, cam_calib_file)
     lidar_calib = parse_lidar_calib(command_args.dataset, lidar_calib_file)
     depth_gt = None
-    for i in range(1, 908):
+    for i in range(1, 495):
         print(str(i) + " start!")
         # get lidar raw data from dataset and project to image plane (+ save)
         lidar_point_cloud = convert_npy_to_xyz(lidar_npy_file+str(format(i, "04"))+".npy")  # npy to XYZ format

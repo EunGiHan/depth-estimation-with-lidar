@@ -29,7 +29,7 @@ def save_depth_txt(depth: np.ndarray, save_path: str) -> None:
 def save_depth_gt_img(i: int, depth_gt:  np.ndarray, cam_calib: dict, save_path: str) -> np.array:
     img = np.zeros((cam_calib["size"]["height"], cam_calib["size"]["width"]), dtype=np.float32)
     backtorgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-    img2 = cv2.imread("data/image_plane/"+str(format(i, "04"))+".png")
+    img2 = cv2.imread("data/4/"+str(format(i, "04"))+".png")
     height, width, channel = img2.shape
 
     int_param = np.array(cam_calib["K"])
@@ -66,15 +66,15 @@ def save_depth_gt_img(i: int, depth_gt:  np.ndarray, cam_calib: dict, save_path:
             if img[int(y)][int(x)] > depth:
                 img[int(y)][int(x)] = depth #투영된 3D 좌표가 여러개라면, 가까운 점이 우선 순위로 매김
     print(np.max(img))
+    calibrated_img = cv2.resize(calibrated_img, (0, 0), fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA)
     undist = cv2.addWeighted(calibrated_img, 0.8, backtorgb, 1.0 , 0.0, dtype=cv2.CV_8U)
-    dist = cv2.addWeighted(img2, 0.3, backtorgb, 1.0 , 0.0, dtype=cv2.CV_8U)
-    #calibrated_img = cv2.resize(calibrated_img, (0, 0), fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA)
+    # dist = cv2.addWeighted(img2, 0.3, backtorgb, 1.0 , 0.0, dtype=cv2.CV_8U)
     # img = cv2.resize(img, (0, 0), fx=0.5, fy=0.5, interpolation=cv2.INTER_AREA)
     print(np.max(img))
-    #cv2.imwrite(save_path+"image_plane/"+str(format(i, "04"))+".png", calibrated_img)
+    cv2.imwrite(save_path+"image_plane/"+str(format(i, "04"))+".png", calibrated_img)
     #cv2.imwrite(save_path+str(format(i, "04"))+".png", img)
     cv2.imwrite(save_path+str(format(i, "04"))+"_undist.png", undist)
-    cv2.imwrite(save_path+str(format(i, "04"))+"_dist.png", dist)
+    #cv2.imwrite(save_path+str(format(i, "04"))+"_dist.png", dist)
     return np.array(img)
 
 
