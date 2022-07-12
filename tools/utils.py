@@ -25,10 +25,12 @@ def save_depth_txt(depth: np.ndarray, save_path: str) -> None:
     with open(save_path, "w") as f:
         f.write(result)
 
+
 def save_depth_npy(depth: np.ndarray, save_path: str) -> None:
     np.save(save_path, depth)
 
-def load_pred_img(i:int, cam_calib: dict):
+
+def load_pred_img(i: int, cam_calib: dict):
     img2 = cv2.imread("data/4/" + str(format(i, "04")) + ".png")
     height, width, channel = img2.shape
 
@@ -59,6 +61,7 @@ def load_pred_img(i:int, cam_calib: dict):
 
     return calibrated_img
 
+
 def save_depth_gt_img(i: int, depth_gt: np.ndarray, cam_calib: dict, save_path: str) -> np.array:
     img = np.zeros((cam_calib["size"]["height"], cam_calib["size"]["width"]), dtype=np.float32)
     backtorgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
@@ -75,7 +78,7 @@ def save_depth_gt_img(i: int, depth_gt: np.ndarray, cam_calib: dict, save_path: 
             if img[int(y)][int(x)] > depth:
                 img[int(y)][int(x)] = depth  # 투영된 3D 좌표가 여러개라면, 가까운 점이 우선 순위로 매김
     print(np.max(img))
-    
+
     undist = cv2.addWeighted(calibrated_img, 0.8, backtorgb, 1.0, 0.0, dtype=cv2.CV_8U)
     # cv2.imwrite(save_path + "image_plane/" + str(format(i, "04")) + ".png", calibrated_img)
     # cv2.imwrite(save_path + str(format(i, "04")) + "_undist.png", undist)
@@ -165,15 +168,15 @@ def make_eval_report(depth_gt: np.array, depth_map: np.array, cam_calib: dict) -
         )
     )
     report = dict(
-            a1=a1,
-            a2=a2,
-            a3=a3,
-            abs_rel=abs_rel,
-            rmse=rmse,
-            log_10=log_10,
-            rmse_log=rmse_log,
-            silog=silog,
-            sq_rel=sq_rel,
+        a1=a1,
+        a2=a2,
+        a3=a3,
+        abs_rel=abs_rel,
+        rmse=rmse,
+        log_10=log_10,
+        rmse_log=rmse_log,
+        silog=silog,
+        sq_rel=sq_rel,
     )
     # for (method, value) in eval_result.items():
     #     report += "{0:<}\t\t{1:>2.3f}\n".format(method, value)

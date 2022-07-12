@@ -6,7 +6,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from mmcv.cnn import build_norm_layer, trunc_normal_init
+from depth.models.builder import BACKBONES
+from depth.models.utils import PatchEmbedSwin as PatchEmbed
+from depth.models.utils import swin_convert
+from depth.ops import resize
+from depth.utils import get_root_logger
+from mmcv.cnn import ConvModule, build_norm_layer, trunc_normal_init
 from mmcv.cnn.bricks.transformer import FFN, build_dropout
 from mmcv.cnn.utils.weight_init import constant_init
 from mmcv.runner import _load_checkpoint
@@ -15,16 +20,9 @@ from torch.nn.modules.linear import Linear
 from torch.nn.modules.normalization import LayerNorm
 from torch.nn.modules.utils import _pair as to_2tuple
 
-from depth.ops import resize
-from depth.utils import get_root_logger
-from depth.models.builder import BACKBONES
-from depth.models.utils import swin_convert
-from depth.models.utils import PatchEmbedSwin as PatchEmbed
-
-from .resnet import BasicBlock, Bottleneck
 from ..utils import ResLayer
+from .resnet import BasicBlock, Bottleneck
 
-from mmcv.cnn import ConvModule
 
 class PatchMerging(BaseModule):
     """Merge patch feature map.
@@ -44,24 +42,25 @@ class PatchMerging(BaseModule):
             Defaults: None.
     """
 
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 stride=2,
-                 bias=False,
-                 norm_cfg=dict(type='LN'),
-                 init_cfg=None):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        stride=2,
+        bias=False,
+        norm_cfg=dict(type="LN"),
+        init_cfg=None,
+    ):
         super().__init__(init_cfg)
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.stride = stride
 
-        self.sampler = nn.Unfold(
-            kernel_size=stride, dilation=1, padding=0, stride=stride)
+        self.sampler = nn.Unfold(kernel_size=stride, dilation=1, padding=0, stride=stride)
 
         # MOD: sample_dim 바꿔줌
         # sample_dim = stride**2 * in_channels
-        sample_dim = stride ** 2* in_channels # norm_layer(2 * dim)
+        sample_dim = stride**2 * in_channels  # norm_layer(2 * dim)
 
         if norm_cfg is not None:
             self.norm = build_norm_layer(norm_cfg, out_channels)[1]
@@ -77,7 +76,7 @@ class PatchMerging(BaseModule):
         """
         B, L, C = x.shape
         H, W = hw_shape
-        assert L == H * W, 'input feature has wrong size'
+        assert L == H * W, "input feature has wrong size"
 
         x = x.view(B, H, W, C).permute([0, 3, 1, 2])  # B, C, H, W
 
@@ -92,7 +91,7 @@ class PatchMerging(BaseModule):
 
         # MOD: reduction과 norm 순서 바꿔줌
         # x = self.norm(x) if self.norm else x
-        # x = self.reduction(x)        
+        # x = self.reduction(x)
         x = self.reduction(x)
         x = self.norm(x) if self.norm else x
 
@@ -118,17 +117,20 @@ class WindowMSA(BaseModule):
         init_cfg (dict | None, optional): The Config for initialization.
             Default: None.
     """
+
     # MOD: qk_scale 삭제, pretrained_window_size 추가
-    def __init__(self,
-                 embed_dims,
-                 num_heads,
-                 window_size,
-                 qkv_bias=True,
-                 #qk_scale=None,
-                 attn_drop_rate=0.,
-                 proj_drop_rate=0.,
-                 init_cfg=None,
-                 pretrained_window_size=[0, 0]):
+    def __init__(
+        self,
+        embed_dims,
+        num_heads,
+        window_size,
+        qkv_bias=True,
+        # qk_scale=None,
+        attn_drop_rate=0.0,
+        proj_drop_rate=0.0,
+        init_cfg=None,
+        pretrained_window_size=[0, 0],
+    ):
 
         super().__init__()
         self.embed_dims = embed_dims
@@ -140,38 +142,51 @@ class WindowMSA(BaseModule):
         # MOD: scale 삭제 -> log scale로
         # head_embed_dims = embed_dims // num_heads
         # self.scale = qk_scale or head_embed_dims**-0.5
-        self.logit_scale = nn.Parameter(torch.log(10 * torch.ones((num_heads, 1, 1), device="cuda:0")), requires_grad=True)
+        self.logit_scale = nn.Parameter(
+            torch.log(10 * torch.ones((num_heads, 1, 1), device="cuda:0")), requires_grad=True
+        )
 
         # MOD: relative_position_bias table 변경
         # define a parameter table of relative position bias
         # self.relative_position_bias_table = nn.Parameter(
         #     torch.zeros((2 * window_size[0] - 1) * (2 * window_size[1] - 1),
         #                 num_heads))  # 2*Wh-1 * 2*Ww-1, nH
-        
+
         # mlp to generate continuous relative position bias
-        self.cpb_mlp = nn.Sequential(nn.Linear(2, 512, bias=True),
-                                     nn.ReLU(inplace=True),
-                                     nn.Linear(512, num_heads, bias=False))
+        self.cpb_mlp = nn.Sequential(
+            nn.Linear(2, 512, bias=True),
+            nn.ReLU(inplace=True),
+            nn.Linear(512, num_heads, bias=False),
+        )
 
         # get relative_coords_table
-        relative_coords_h = torch.arange(-(self.window_size[0] - 1), self.window_size[0], dtype=torch.float32)
-        relative_coords_w = torch.arange(-(self.window_size[1] - 1), self.window_size[1], dtype=torch.float32)
-        relative_coords_table = torch.stack(
-            torch.meshgrid([relative_coords_h,
-                            relative_coords_w])).permute(1, 2, 0).contiguous().unsqueeze(0)  # 1, 2*Wh-1, 2*Ww-1, 2
+        relative_coords_h = torch.arange(
+            -(self.window_size[0] - 1), self.window_size[0], dtype=torch.float32
+        )
+        relative_coords_w = torch.arange(
+            -(self.window_size[1] - 1), self.window_size[1], dtype=torch.float32
+        )
+        relative_coords_table = (
+            torch.stack(torch.meshgrid([relative_coords_h, relative_coords_w]))
+            .permute(1, 2, 0)
+            .contiguous()
+            .unsqueeze(0)
+        )  # 1, 2*Wh-1, 2*Ww-1, 2
         if pretrained_window_size[0] > 0:
-            relative_coords_table[:, :, :, 0] /= (pretrained_window_size[0] - 1)
-            relative_coords_table[:, :, :, 1] /= (pretrained_window_size[1] - 1)
+            relative_coords_table[:, :, :, 0] /= pretrained_window_size[0] - 1
+            relative_coords_table[:, :, :, 1] /= pretrained_window_size[1] - 1
         else:
-            relative_coords_table[:, :, :, 0] /= (self.window_size[0] - 1)
-            relative_coords_table[:, :, :, 1] /= (self.window_size[1] - 1)
+            relative_coords_table[:, :, :, 0] /= self.window_size[0] - 1
+            relative_coords_table[:, :, :, 1] /= self.window_size[1] - 1
         relative_coords_table *= 8  # normalize to -8, 8
-        relative_coords_table = torch.sign(relative_coords_table) * torch.log2(
-            torch.abs(relative_coords_table) + 1.0) / np.log2(8)
+        relative_coords_table = (
+            torch.sign(relative_coords_table)
+            * torch.log2(torch.abs(relative_coords_table) + 1.0)
+            / np.log2(8)
+        )
 
         self.register_buffer("relative_coords_table", relative_coords_table)
         # ------------------------------------------->
-
 
         # About 2x faster than original impl
         Wh, Ww = self.window_size
@@ -179,10 +194,10 @@ class WindowMSA(BaseModule):
         rel_index_coords = self.double_step_seq(2 * Ww - 1, Wh, 1, Ww)
         rel_position_index = rel_index_coords + rel_index_coords.T
         rel_position_index = rel_position_index.flip(1).contiguous()
-        self.register_buffer('relative_position_index', rel_position_index)
+        self.register_buffer("relative_position_index", rel_position_index)
 
         # MOD: qkv 변경
-        #self.qkv = nn.Linear(embed_dims, embed_dims * 3, bias=qkv_bias)
+        # self.qkv = nn.Linear(embed_dims, embed_dims * 3, bias=qkv_bias)
         self.qkv = nn.Linear(embed_dims, embed_dims * 3, bias=False)
         if qkv_bias:
             self.q_bias = nn.Parameter(torch.zeros(embed_dims))
@@ -190,7 +205,7 @@ class WindowMSA(BaseModule):
         else:
             self.q_bias = None
             self.v_bias = None
-            
+
         self.attn_drop = nn.Dropout(attn_drop_rate)
         self.proj = nn.Linear(embed_dims, embed_dims)
         self.proj_drop = nn.Dropout(proj_drop_rate)
@@ -215,7 +230,9 @@ class WindowMSA(BaseModule):
         #                           C // self.num_heads).permute(2, 0, 3, 1, 4)
         qkv_bias = None
         if self.q_bias is not None:
-            qkv_bias = torch.cat((self.q_bias, torch.zeros_like(self.v_bias, requires_grad=False), self.v_bias))
+            qkv_bias = torch.cat(
+                (self.q_bias, torch.zeros_like(self.v_bias, requires_grad=False), self.v_bias)
+            )
         qkv = F.linear(input=x, weight=self.qkv.weight, bias=qkv_bias)
         qkv = qkv.reshape(B, N, 3, self.num_heads, -1).permute(2, 0, 3, 1, 4)
         q, k, v = qkv[0], qkv[1], qkv[2]  # make torchscript happy (cannot use tensor as tuple)
@@ -223,10 +240,12 @@ class WindowMSA(BaseModule):
         # MOD: add cosine attention
         # q = q * self.scale
         # attn = (q @ k.transpose(-2, -1))
-        
+
         # cosine attention
-        attn = (F.normalize(q, dim=-1) @ F.normalize(k, dim=-1).transpose(-2, -1))
-        logit_scale = torch.clamp(self.logit_scale, max=torch.log(torch.tensor(1. / 0.01, device="cuda:0"))).exp()
+        attn = F.normalize(q, dim=-1) @ F.normalize(k, dim=-1).transpose(-2, -1)
+        logit_scale = torch.clamp(
+            self.logit_scale, max=torch.log(torch.tensor(1.0 / 0.01, device="cuda:0"))
+        ).exp()
         attn = attn * logit_scale
 
         # ------------------------------------------------------>
@@ -239,18 +258,23 @@ class WindowMSA(BaseModule):
         # relative_position_bias = relative_position_bias.permute(
         #     2, 0, 1).contiguous()  # nH, Wh*Ww, Wh*Ww
         # attn = attn + relative_position_bias.unsqueeze(0)
-        relative_position_bias_table = self.cpb_mlp(self.relative_coords_table).view(-1, self.num_heads)
-        relative_position_bias = relative_position_bias_table[self.relative_position_index.view(-1)].view(
-            self.window_size[0] * self.window_size[1], self.window_size[0] * self.window_size[1], -1)  # Wh*Ww,Wh*Ww,nH
-        relative_position_bias = relative_position_bias.permute(2, 0, 1).contiguous()  # nH, Wh*Ww, Wh*Ww
+        relative_position_bias_table = self.cpb_mlp(self.relative_coords_table).view(
+            -1, self.num_heads
+        )
+        relative_position_bias = relative_position_bias_table[
+            self.relative_position_index.view(-1)
+        ].view(
+            self.window_size[0] * self.window_size[1], self.window_size[0] * self.window_size[1], -1
+        )  # Wh*Ww,Wh*Ww,nH
+        relative_position_bias = relative_position_bias.permute(
+            2, 0, 1
+        ).contiguous()  # nH, Wh*Ww, Wh*Ww
         relative_position_bias = 16 * torch.sigmoid(relative_position_bias)
         attn = attn + relative_position_bias.unsqueeze(0)
 
-
         if mask is not None:
             nW = mask.shape[0]
-            attn = attn.view(B // nW, nW, self.num_heads, N,
-                             N) + mask.unsqueeze(1).unsqueeze(0)
+            attn = attn.view(B // nW, nW, self.num_heads, N, N) + mask.unsqueeze(1).unsqueeze(0)
             attn = attn.view(-1, self.num_heads, N, N)
             attn = self.softmax(attn)
         else:
@@ -293,20 +317,22 @@ class ShiftWindowMSA(BaseModule):
             Default: None.
     """
 
-    def __init__(self,
-                 embed_dims,
-                 num_heads,
-                 window_size,
-                 shift_size=0,
-                 qkv_bias=True,
-                 # MOD: scale 삭제
-                 #qk_scale=None,
-                 attn_drop_rate=0,
-                 proj_drop_rate=0,
-                 dropout_layer=dict(type='DropPath', drop_prob=0.),
-                 init_cfg=None,
-                 # MOD: pertrain window 추가
-                 pretrained_window_size=0):
+    def __init__(
+        self,
+        embed_dims,
+        num_heads,
+        window_size,
+        shift_size=0,
+        qkv_bias=True,
+        # MOD: scale 삭제
+        # qk_scale=None,
+        attn_drop_rate=0,
+        proj_drop_rate=0,
+        dropout_layer=dict(type="DropPath", drop_prob=0.0),
+        init_cfg=None,
+        # MOD: pertrain window 추가
+        pretrained_window_size=0,
+    ):
         super().__init__(init_cfg)
 
         self.window_size = window_size
@@ -319,19 +345,20 @@ class ShiftWindowMSA(BaseModule):
             window_size=to_2tuple(window_size),
             qkv_bias=qkv_bias,
             # MOD: scale 삭제
-            #qk_scale=qk_scale,
+            # qk_scale=qk_scale,
             attn_drop_rate=attn_drop_rate,
             proj_drop_rate=proj_drop_rate,
             init_cfg=None,
             # MOD: pertrain window 추가
-            pretrained_window_size=to_2tuple(pretrained_window_size))
+            pretrained_window_size=to_2tuple(pretrained_window_size),
+        )
 
         self.drop = build_dropout(dropout_layer)
 
     def forward(self, query, hw_shape):
         B, L, C = query.shape
         H, W = hw_shape
-        assert L == H * W, 'input feature has wrong size'
+        assert L == H * W, "input feature has wrong size"
         query = query.view(B, H, W, C)
 
         # pad feature maps to multiples of window size
@@ -343,19 +370,21 @@ class ShiftWindowMSA(BaseModule):
         # cyclic shift
         if self.shift_size > 0:
             shifted_query = torch.roll(
-                query,
-                shifts=(-self.shift_size, -self.shift_size),
-                dims=(1, 2))
+                query, shifts=(-self.shift_size, -self.shift_size), dims=(1, 2)
+            )
 
             # calculate attention mask for SW-MSA
-            img_mask = torch.zeros((1, H_pad, W_pad, 1),
-                                   device=query.device)  # 1 H W 1
-            h_slices = (slice(0, -self.window_size),
-                        slice(-self.window_size,
-                              -self.shift_size), slice(-self.shift_size, None))
-            w_slices = (slice(0, -self.window_size),
-                        slice(-self.window_size,
-                              -self.shift_size), slice(-self.shift_size, None))
+            img_mask = torch.zeros((1, H_pad, W_pad, 1), device=query.device)  # 1 H W 1
+            h_slices = (
+                slice(0, -self.window_size),
+                slice(-self.window_size, -self.shift_size),
+                slice(-self.shift_size, None),
+            )
+            w_slices = (
+                slice(0, -self.window_size),
+                slice(-self.window_size, -self.shift_size),
+                slice(-self.shift_size, None),
+            )
             cnt = 0
             for h in h_slices:
                 for w in w_slices:
@@ -364,12 +393,11 @@ class ShiftWindowMSA(BaseModule):
 
             # nW, window_size, window_size, 1
             mask_windows = self.window_partition(img_mask)
-            mask_windows = mask_windows.view(
-                -1, self.window_size * self.window_size)
+            mask_windows = mask_windows.view(-1, self.window_size * self.window_size)
             attn_mask = mask_windows.unsqueeze(1) - mask_windows.unsqueeze(2)
-            attn_mask = attn_mask.masked_fill(attn_mask != 0,
-                                              float(-100.0)).masked_fill(
-                                                  attn_mask == 0, float(0.0))
+            attn_mask = attn_mask.masked_fill(attn_mask != 0, float(-100.0)).masked_fill(
+                attn_mask == 0, float(0.0)
+            )
         else:
             shifted_query = query
             attn_mask = None
@@ -383,17 +411,13 @@ class ShiftWindowMSA(BaseModule):
         attn_windows = self.w_msa(query_windows, mask=attn_mask)
 
         # merge windows
-        attn_windows = attn_windows.view(-1, self.window_size,
-                                         self.window_size, C)
+        attn_windows = attn_windows.view(-1, self.window_size, self.window_size, C)
         # 수정 포인트인데 이미 수정이 되어있음
         # B H' W' C
         shifted_x = self.window_reverse(attn_windows, H_pad, W_pad)
         # reverse cyclic shift
         if self.shift_size > 0:
-            x = torch.roll(
-                shifted_x,
-                shifts=(self.shift_size, self.shift_size),
-                dims=(1, 2))
+            x = torch.roll(shifted_x, shifts=(self.shift_size, self.shift_size), dims=(1, 2))
         else:
             x = shifted_x
 
@@ -417,8 +441,7 @@ class ShiftWindowMSA(BaseModule):
         """
         window_size = self.window_size
         B = int(windows.shape[0] / (H * W / window_size / window_size))
-        x = windows.view(B, H // window_size, W // window_size, window_size,
-                         window_size, -1)
+        x = windows.view(B, H // window_size, W // window_size, window_size, window_size, -1)
         x = x.permute(0, 1, 3, 2, 4, 5).contiguous().view(B, H, W, -1)
         return x
 
@@ -432,15 +455,14 @@ class ShiftWindowMSA(BaseModule):
         """
         B, H, W, C = x.shape
         window_size = self.window_size
-        x = x.view(B, H // window_size, window_size, W // window_size,
-                   window_size, C)
+        x = x.view(B, H // window_size, window_size, W // window_size, window_size, C)
         windows = x.permute(0, 1, 3, 2, 4, 5).contiguous()
         windows = windows.view(-1, window_size, window_size, C)
         return windows
 
 
 class SwinBlock(BaseModule):
-    """"
+    """ "
     Args:
         embed_dims (int): The feature dimension.
         num_heads (int): Parallel attention heads.
@@ -461,23 +483,25 @@ class SwinBlock(BaseModule):
             Default: None.
     """
 
-    def __init__(self,
-                 embed_dims,
-                 num_heads,
-                 feedforward_channels,
-                 window_size=7,
-                 shift=False,
-                 qkv_bias=True,
-                 # MOD: scale 삭제
-                 #qk_scale=None,
-                 drop_rate=0.,
-                 attn_drop_rate=0.,
-                 drop_path_rate=0.,
-                 act_cfg=dict(type='GELU'),
-                 norm_cfg=dict(type='LN'),
-                 init_cfg=None,
-                 # MOD: pretrained_window_size 추가
-                 pretrained_window_size=0):
+    def __init__(
+        self,
+        embed_dims,
+        num_heads,
+        feedforward_channels,
+        window_size=7,
+        shift=False,
+        qkv_bias=True,
+        # MOD: scale 삭제
+        # qk_scale=None,
+        drop_rate=0.0,
+        attn_drop_rate=0.0,
+        drop_path_rate=0.0,
+        act_cfg=dict(type="GELU"),
+        norm_cfg=dict(type="LN"),
+        init_cfg=None,
+        # MOD: pretrained_window_size 추가
+        pretrained_window_size=0,
+    ):
 
         super(SwinBlock, self).__init__()
 
@@ -491,13 +515,14 @@ class SwinBlock(BaseModule):
             shift_size=window_size // 2 if shift else 0,
             qkv_bias=qkv_bias,
             # MO: scale 삭제
-            #qk_scale=qk_scale,
+            # qk_scale=qk_scale,
             attn_drop_rate=attn_drop_rate,
             proj_drop_rate=drop_rate,
-            dropout_layer=dict(type='DropPath', drop_prob=drop_path_rate),
+            dropout_layer=dict(type="DropPath", drop_prob=drop_path_rate),
             init_cfg=None,
             # pretrained_window_size 추가
-            pretrained_window_size=pretrained_window_size)
+            pretrained_window_size=pretrained_window_size,
+        )
 
         self.norm2 = build_norm_layer(norm_cfg, embed_dims)[1]
         self.ffn = FFN(
@@ -505,10 +530,11 @@ class SwinBlock(BaseModule):
             feedforward_channels=feedforward_channels,
             num_fcs=2,
             ffn_drop=drop_rate,
-            dropout_layer=dict(type='DropPath', drop_prob=drop_path_rate),
+            dropout_layer=dict(type="DropPath", drop_prob=drop_path_rate),
             act_cfg=act_cfg,
             add_identity=True,
-            init_cfg=None)
+            init_cfg=None,
+        )
 
     def forward(self, x, hw_shape):
         identity = x
@@ -517,7 +543,6 @@ class SwinBlock(BaseModule):
         # x = self.attn(x, hw_shape)
         x = self.attn(x, hw_shape)
         x = self.norm1(x)
-
 
         x = x + identity
 
@@ -529,6 +554,7 @@ class SwinBlock(BaseModule):
         x = self.norm2(x)
 
         return x
+
 
 # basic layer?
 class SwinBlockSequence(BaseModule):
@@ -556,30 +582,34 @@ class SwinBlockSequence(BaseModule):
             Default: None.
     """
 
-    def __init__(self,
-                 embed_dims,
-                 num_heads,
-                 feedforward_channels,
-                 depth,
-                 window_size=7,
-                 qkv_bias=True,
-                 # MOD: scale 삭제
-                 #qk_scale=None,
-                 drop_rate=0.,
-                 attn_drop_rate=0.,
-                 drop_path_rate=0.,
-                 downsample=None,
-                 act_cfg=dict(type='GELU'),
-                 norm_cfg=dict(type='LN'),
-                 init_cfg=None,
-                 pretrained_window_size=0):
+    def __init__(
+        self,
+        embed_dims,
+        num_heads,
+        feedforward_channels,
+        depth,
+        window_size=7,
+        qkv_bias=True,
+        # MOD: scale 삭제
+        # qk_scale=None,
+        drop_rate=0.0,
+        attn_drop_rate=0.0,
+        drop_path_rate=0.0,
+        downsample=None,
+        act_cfg=dict(type="GELU"),
+        norm_cfg=dict(type="LN"),
+        init_cfg=None,
+        pretrained_window_size=0,
+    ):
         super().__init__()
 
         self.init_cfg = init_cfg
 
-        drop_path_rate = drop_path_rate if isinstance(
-            drop_path_rate,
-            list) else [deepcopy(drop_path_rate) for _ in range(depth)]
+        drop_path_rate = (
+            drop_path_rate
+            if isinstance(drop_path_rate, list)
+            else [deepcopy(drop_path_rate) for _ in range(depth)]
+        )
 
         self.blocks = ModuleList()
         for i in range(depth):
@@ -591,7 +621,7 @@ class SwinBlockSequence(BaseModule):
                 shift=False if i % 2 == 0 else True,
                 qkv_bias=qkv_bias,
                 # MOD: scale 삭제
-                #qk_scale=qk_scale,
+                # qk_scale=qk_scale,
                 drop_rate=drop_rate,
                 attn_drop_rate=attn_drop_rate,
                 drop_path_rate=drop_path_rate[i],
@@ -599,7 +629,8 @@ class SwinBlockSequence(BaseModule):
                 norm_cfg=norm_cfg,
                 init_cfg=None,
                 # MOD: pretrained_window_size 추가
-                pretrained_window_size=pretrained_window_size)
+                pretrained_window_size=pretrained_window_size,
+            )
             self.blocks.append(block)
 
         self.downsample = downsample
@@ -624,8 +655,9 @@ class SwinBlockSequence(BaseModule):
 
 
 conv_cfg = {
-    'Conv': nn.Conv2d,
+    "Conv": nn.Conv2d,
 }
+
 
 def build_conv_layer(cfg, *args, **kwargs):
     """Build convolution layer.
@@ -637,11 +669,11 @@ def build_conv_layer(cfg, *args, **kwargs):
         nn.Module: Created conv layer.
     """
 
-    cfg_ = dict(type='Conv')
-    
-    layer_type = cfg_.pop('type')
+    cfg_ = dict(type="Conv")
+
+    layer_type = cfg_.pop("type")
     if layer_type not in conv_cfg:
-        raise KeyError('Unrecognized norm type {}'.format(layer_type))
+        raise KeyError("Unrecognized norm type {}".format(layer_type))
     else:
         conv_layer = conv_cfg[layer_type]
 
@@ -649,9 +681,10 @@ def build_conv_layer(cfg, *args, **kwargs):
 
     return layer
 
+
 @BACKBONES.register_module()
 class DepthFormerSwin(BaseModule):
-    """ Swin Transformer
+    """Swin Transformer
     A PyTorch implement of : `Swin Transformer:
     Hierarchical Vision Transformer using Shifted Windows`  -
         https://arxiv.org/abs/2103.14030
@@ -698,7 +731,7 @@ class DepthFormerSwin(BaseModule):
         pretrained (str, optional): model pretrained path. Default: None.
         init_cfg (dict, optional): The Config for initialization.
             Defaults to None.
-        
+
         ### Conv cfg
         conv_cfg (dict | None): Dictionary to construct and config conv layer.
             When conv_cfg is None, cfg will be set to dict(type='Conv2d').
@@ -716,7 +749,7 @@ class DepthFormerSwin(BaseModule):
         style (str): `pytorch` or `caffe`. If set to "pytorch", the stride-two
             layer is the 3x3 conv layer, otherwise the stride-two layer is
             the first 1x1 conv layer. Default: 'pytorch'. (No use in this version. We utilize scratched Resnet branch in our experiments)
-        conv_pretrained (str, optional): model pretrained path. Default: None. 
+        conv_pretrained (str, optional): model pretrained path. Default: None.
             (No use in this version. We utilize scratched Resnet branch in our experiments)
 
     """
@@ -726,43 +759,45 @@ class DepthFormerSwin(BaseModule):
         34: (BasicBlock, (3, 4, 6, 3)),
         50: (Bottleneck, (3, 4, 6, 3)),
         101: (Bottleneck, (3, 4, 23, 3)),
-        152: (Bottleneck, (3, 8, 36, 3))
+        152: (Bottleneck, (3, 8, 36, 3)),
     }
 
-    def __init__(self,
-                 pretrain_img_size=224,
-                 in_channels=3,
-                 embed_dims=96,
-                 patch_size=4,
-                 window_size=7,
-                 mlp_ratio=4,
-                 depths=(2, 2, 6, 2),
-                 num_heads=(3, 6, 12, 24),
-                 strides=(4, 2, 2, 2),
-                 out_indices=(0, 1, 2, 3),
-                 qkv_bias=True,
-                 # MOD: scale 삭제
-                 #qk_scale=None,
-                 patch_norm=True,
-                 drop_rate=0.,
-                 attn_drop_rate=0.,
-                 drop_path_rate=0.1,
-                 use_abs_pos_embed=False,
-                 act_cfg=dict(type='GELU'),
-                 norm_cfg=dict(type='LN'),
-                 pretrain_style='official',
-                 pretrained=None,
-                 init_cfg=None,
-                 conv_cfg=None,
-                 conv_norm_cfg=None,
-                 depth=None,
-                 num_stages=None,
-                 with_cp=False,
-                 conv_strides=(1, 2, 2, 2),
-                 conv_dilations=(1, 1, 1, 1),
-                 style='pytorch',
-                 conv_pretrained=None,
-                 pretrained_window_sizes=[0, 0, 0, 0]):
+    def __init__(
+        self,
+        pretrain_img_size=224,
+        in_channels=3,
+        embed_dims=96,
+        patch_size=4,
+        window_size=7,
+        mlp_ratio=4,
+        depths=(2, 2, 6, 2),
+        num_heads=(3, 6, 12, 24),
+        strides=(4, 2, 2, 2),
+        out_indices=(0, 1, 2, 3),
+        qkv_bias=True,
+        # MOD: scale 삭제
+        # qk_scale=None,
+        patch_norm=True,
+        drop_rate=0.0,
+        attn_drop_rate=0.0,
+        drop_path_rate=0.1,
+        use_abs_pos_embed=False,
+        act_cfg=dict(type="GELU"),
+        norm_cfg=dict(type="LN"),
+        pretrain_style="official",
+        pretrained=None,
+        init_cfg=None,
+        conv_cfg=None,
+        conv_norm_cfg=None,
+        depth=None,
+        num_stages=None,
+        with_cp=False,
+        conv_strides=(1, 2, 2, 2),
+        conv_dilations=(1, 1, 1, 1),
+        style="pytorch",
+        conv_pretrained=None,
+        pretrained_window_sizes=[0, 0, 0, 0],
+    ):
         super(DepthFormerSwin, self).__init__()
 
         self.conv_cfg = conv_cfg
@@ -774,18 +809,19 @@ class DepthFormerSwin(BaseModule):
         elif isinstance(pretrain_img_size, tuple):
             if len(pretrain_img_size) == 1:
                 pretrain_img_size = to_2tuple(pretrain_img_size[0])
-            assert len(pretrain_img_size) == 2, \
-                f'The size of image should have length 1 or 2, ' \
-                f'but got {len(pretrain_img_size)}'
+            assert len(pretrain_img_size) == 2, (
+                f"The size of image should have length 1 or 2, " f"but got {len(pretrain_img_size)}"
+            )
 
-        assert pretrain_style in ['official', 'mmcls'], 'We only support load '
-        'official ckpt and mmcls ckpt.'
+        assert pretrain_style in ["official", "mmcls"], "We only support load "
+        "official ckpt and mmcls ckpt."
 
         if isinstance(pretrained, str) or pretrained is None:
-            warnings.warn('DeprecationWarning: pretrained is a deprecated, '
-                          'please use "init_cfg" instead')
+            warnings.warn(
+                "DeprecationWarning: pretrained is a deprecated, " 'please use "init_cfg" instead'
+            )
         else:
-            raise TypeError('pretrained must be a str or None')
+            raise TypeError("pretrained must be a str or None")
 
         num_layers = len(depths)
         self.out_indices = out_indices
@@ -795,24 +831,24 @@ class DepthFormerSwin(BaseModule):
         self.conv_pretrained = conv_pretrained
         self.init_cfg = init_cfg
 
-        assert strides[0] == patch_size, 'Use non-overlapping patch embed.'
+        assert strides[0] == patch_size, "Use non-overlapping patch embed."
 
         self.patch_embed = PatchEmbed(
             in_channels=in_channels,
             embed_dims=embed_dims,
-            conv_type='Conv2d',
+            conv_type="Conv2d",
             kernel_size=patch_size,
             stride=strides[0],
             pad_to_patch_size=True,
             norm_cfg=norm_cfg if patch_norm else None,
-            init_cfg=None)
+            init_cfg=None,
+        )
 
         if self.use_abs_pos_embed:
             patch_row = pretrain_img_size[0] // patch_size
             patch_col = pretrain_img_size[1] // patch_size
             num_patches = patch_row * patch_col
-            self.absolute_pos_embed = nn.Parameter(
-                torch.zeros((1, num_patches, embed_dims)))
+            self.absolute_pos_embed = nn.Parameter(torch.zeros((1, num_patches, embed_dims)))
 
         self.drop_after_pos = nn.Dropout(p=drop_rate)
 
@@ -831,7 +867,8 @@ class DepthFormerSwin(BaseModule):
                     out_channels=2 * in_channels,
                     stride=strides[i + 1],
                     norm_cfg=norm_cfg if patch_norm else None,
-                    init_cfg=None)
+                    init_cfg=None,
+                )
             else:
                 downsample = None
                 # MOD: 마지막 레이어에 대해 이렇게 처리해줘야 돌아간다.. 이유는 아직 모르겠다.
@@ -845,18 +882,19 @@ class DepthFormerSwin(BaseModule):
                 window_size=window_size,
                 qkv_bias=qkv_bias,
                 # MOD: scale 삭제
-                #qk_scale=qk_scale,
+                # qk_scale=qk_scale,
                 drop_rate=drop_rate,
                 attn_drop_rate=attn_drop_rate,
-                drop_path_rate=dpr[:depths[i]],
+                drop_path_rate=dpr[: depths[i]],
                 downsample=downsample,
                 act_cfg=act_cfg,
                 norm_cfg=norm_cfg,
                 init_cfg=None,
-                pretrained_window_size=pretrained_window_sizes[i])
+                pretrained_window_size=pretrained_window_sizes[i],
+            )
             self.stages.append(stage)
 
-            dpr = dpr[depths[i]:]
+            dpr = dpr[depths[i] :]
             if downsample:
                 in_channels = downsample.out_channels
         # MOD: init_respostnorm 추가
@@ -864,12 +902,12 @@ class DepthFormerSwin(BaseModule):
         for stage in self.stages:
             stage._init_respostnorm()
 
-        #--------------------------------------------->
+        # --------------------------------------------->
         self.num_features = [int(embed_dims * 2**i) for i in range(num_layers)]
         # Add a norm layer for each output
         for i in out_indices:
             layer = build_norm_layer(norm_cfg, self.num_features[i])[1]
-            layer_name = f'norm{i}'
+            layer_name = f"norm{i}"
             self.add_module(layer_name, layer)
 
         # my extended conv stem
@@ -896,9 +934,10 @@ class DepthFormerSwin(BaseModule):
                     style=self.style,
                     with_cp=with_cp,
                     conv_cfg=conv_cfg,
-                    norm_cfg=conv_norm_cfg)
+                    norm_cfg=conv_norm_cfg,
+                )
                 self.inplanes = planes * self.block.expansion
-                layer_name = 'layer{}'.format(i + 1)
+                layer_name = "layer{}".format(i + 1)
                 self.add_module(layer_name, res_layer)
                 self.res_layers.append(layer_name)
 
@@ -908,14 +947,11 @@ class DepthFormerSwin(BaseModule):
 
     def _make_stem_layer(self, in_channels):
         self.conv1 = build_conv_layer(
-            self.conv_cfg,
-            in_channels,
-            64,
-            kernel_size=7,
-            stride=2,
-            padding=3,
-            bias=False)
-        self._conv_stem_norm1_name, _conv_stem_norm1 = build_norm_layer(self.conv_norm_cfg, 64, postfix=1)
+            self.conv_cfg, in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False
+        )
+        self._conv_stem_norm1_name, _conv_stem_norm1 = build_norm_layer(
+            self.conv_norm_cfg, 64, postfix=1
+        )
         self.add_module(self._conv_stem_norm1_name, _conv_stem_norm1)
         self._conv_stem_relu = nn.ReLU(inplace=True)
         self._conv_stem_maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -928,7 +964,7 @@ class DepthFormerSwin(BaseModule):
                 trunc_normal_init(self.absolute_pos_embed, std=0.02)
             for m in self.modules():
                 if isinstance(m, Linear):
-                    trunc_normal_init(m.weight, std=.02)
+                    trunc_normal_init(m.weight, std=0.02)
                     if m.bias is not None:
                         constant_init(m.bias, 0)
                 elif isinstance(m, LayerNorm):
@@ -936,37 +972,36 @@ class DepthFormerSwin(BaseModule):
                     constant_init(m.weight, 1.0)
         elif isinstance(self.pretrained, str):
             logger = get_root_logger()
-            ckpt = _load_checkpoint(
-                self.pretrained, logger=logger, map_location='cpu')
-            if 'state_dict' in ckpt:
-                state_dict = ckpt['state_dict']
-            elif 'model' in ckpt:
-                state_dict = ckpt['model']
+            ckpt = _load_checkpoint(self.pretrained, logger=logger, map_location="cpu")
+            if "state_dict" in ckpt:
+                state_dict = ckpt["state_dict"]
+            elif "model" in ckpt:
+                state_dict = ckpt["model"]
             else:
                 state_dict = ckpt
 
-            if self.pretrain_style == 'official':
+            if self.pretrain_style == "official":
                 state_dict = swin_convert(state_dict)
 
             # strip prefix of state_dict
-            if list(state_dict.keys())[0].startswith('module.'):
+            if list(state_dict.keys())[0].startswith("module."):
                 state_dict = {k[7:]: v for k, v in state_dict.items()}
 
             # reshape absolute position embedding
-            if state_dict.get('absolute_pos_embed') is not None:
-                absolute_pos_embed = state_dict['absolute_pos_embed']
+            if state_dict.get("absolute_pos_embed") is not None:
+                absolute_pos_embed = state_dict["absolute_pos_embed"]
                 N1, L, C1 = absolute_pos_embed.size()
                 N2, C2, H, W = self.absolute_pos_embed.size()
                 if N1 != N2 or C1 != C2 or L != H * W:
-                    logger.warning('Error in loading absolute_pos_embed, pass')
+                    logger.warning("Error in loading absolute_pos_embed, pass")
                 else:
-                    state_dict['absolute_pos_embed'] = absolute_pos_embed.view(
-                        N2, H, W, C2).permute(0, 3, 1, 2).contiguous()
+                    state_dict["absolute_pos_embed"] = (
+                        absolute_pos_embed.view(N2, H, W, C2).permute(0, 3, 1, 2).contiguous()
+                    )
 
             # interpolate position bias table if needed
             relative_position_bias_table_keys = [
-                k for k in state_dict.keys()
-                if 'relative_position_bias_table' in k
+                k for k in state_dict.keys() if "relative_position_bias_table" in k
             ]
             for table_key in relative_position_bias_table_keys:
                 table_pretrained = state_dict[table_key]
@@ -974,28 +1009,29 @@ class DepthFormerSwin(BaseModule):
                 L1, nH1 = table_pretrained.size()
                 L2, nH2 = table_current.size()
                 if nH1 != nH2:
-                    logger.warning(f'Error in loading {table_key}, pass')
+                    logger.warning(f"Error in loading {table_key}, pass")
                 else:
                     if L1 != L2:
                         S1 = int(L1**0.5)
                         S2 = int(L2**0.5)
                         table_pretrained_resized = resize(
-                            table_pretrained.permute(1, 0).reshape(
-                                1, nH1, S1, S1),
+                            table_pretrained.permute(1, 0).reshape(1, nH1, S1, S1),
                             size=(S2, S2),
-                            mode='bicubic')
-                        state_dict[table_key] = table_pretrained_resized.view(
-                            nH2, L2).permute(1, 0).contiguous()
+                            mode="bicubic",
+                        )
+                        state_dict[table_key] = (
+                            table_pretrained_resized.view(nH2, L2).permute(1, 0).contiguous()
+                        )
 
             # load state_dict
             self.load_state_dict(state_dict, False)
 
     def conv_stem(self, x):
-        
+
         conv_stem = self.conv1(x)
         conv_stem = self._conv_stem_norm1(conv_stem)
         conv_stem = self._conv_stem_relu(conv_stem)
-    
+
         if self.num_stages != 0:
             x = self._conv_stem_maxpool(x)
             for i, layer_name in enumerate(self.res_layers):
@@ -1019,11 +1055,13 @@ class DepthFormerSwin(BaseModule):
         for i, stage in enumerate(self.stages):
             x, hw_shape, out, out_hw_shape = stage(x, hw_shape)
             if i in self.out_indices:
-                norm_layer = getattr(self, f'norm{i}')
+                norm_layer = getattr(self, f"norm{i}")
                 out = norm_layer(out)
-                out = out.view(-1, *out_hw_shape,
-                               self.num_features[i]).permute(0, 3, 1,
-                                                             2).contiguous()
+                out = (
+                    out.view(-1, *out_hw_shape, self.num_features[i])
+                    .permute(0, 3, 1, 2)
+                    .contiguous()
+                )
                 outs.append(out)
 
         return outs

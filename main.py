@@ -23,9 +23,9 @@ Todo:
 
 import sys
 from datetime import datetime
-from typing_extensions import Self
 
 from cv2 import mean
+from typing_extensions import Self
 
 from depth_estimation.inferencer import Inferencer
 from tools.parsers import *
@@ -41,14 +41,14 @@ def main(time):
     lidar_calib_file = "dataset/ACE/calibration.yaml"
     image_file = ""  # TODO 이미지 파일 경로
     point_cloud_file = "outputs/ex_point_cloud.pcd"
-    lidar_npy_file = "data/"+str(bag_num)+"/"
-    model_npy_file = "data/"+str(bag_num)+"/"
+    lidar_npy_file = "data/" + str(bag_num) + "/"
+    model_npy_file = "data/" + str(bag_num) + "/"
     infer_load = "data/"
 
     # set save paths (without extension)
-    depth_gt_save_path = "./outputs/"+str(bag_num)+"/depth_gt-"
-    depth_map_save_path = "./outputs/"+str(bag_num)+"/depth_map-"
-    eval_result_save_path = "./outputs/"+str(bag_num)+"/eval_result-"
+    depth_gt_save_path = "./outputs/" + str(bag_num) + "/depth_gt-"
+    depth_map_save_path = "./outputs/" + str(bag_num) + "/depth_map-"
+    eval_result_save_path = "./outputs/" + str(bag_num) + "/eval_result-"
 
     # parse calibration files -> get information
     cam_calib = parse_cam_calib(command_args.dataset, cam_calib_file)
@@ -56,7 +56,7 @@ def main(time):
     inferencer = Inferencer(args=command_args, dataload_path=infer_load)
     pred_depths = inferencer.infer()
     eval_result = []  # 각종 수치자료 (예) dict {'SILog': xxxxx, 'MASE': xxxxx, ...}
-    
+
     for i in range(1, len(pred_depths)):
         print(str(i) + " start!")
         # get lidar raw data from dataset and project to image plane (+ save)
@@ -86,19 +86,20 @@ def main(time):
         save_depth_txt(depth_map, depth_map_save_path + str(format(i, "04")) + ".txt")
         save_depth_npy(depth_map, depth_map_save_path + str(format(i, "04")))
         save_depth_map_img(depth_gt, depth_map_save_path + ".png")
-        
+
         # compare estimates & gt -> calculate errors with metrics (+ save)
         # TODO 현진 님 이곳에 채워주세요. 리턴은 eval_result
         report = make_eval_report(resize_depth_gt, depth_map, cam_calib)
         eval_result.append(report)
         # save_eval_result(report, eval_result_save_path)
 
-    dict_list = ["a1","a2","a3","abs_rel","rmse","log_10","rmse_log","silog","sq_rel"]
+    dict_list = ["a1", "a2", "a3", "abs_rel", "rmse", "log_10", "rmse_log", "silog", "sq_rel"]
     dict_eval = []
     for dic in dict_list:
         result = sum(item[dic] for item in eval_result) / len(eval_result)
         dict_eval.append(result)
     print(dict_eval)
+
 
 if __name__ == "__main__":
     time = (datetime.now()).strftime("%Y_%m_%d-%H_%M_%S")
