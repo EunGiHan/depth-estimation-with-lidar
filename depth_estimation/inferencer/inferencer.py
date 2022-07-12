@@ -11,7 +11,7 @@ from depth_estimation.models import build_depther
 
 
 class Inferencer:
-    def __init__(self, args) -> None:
+    def __init__(self, args, dataload_path) -> None:
         cfg = mmcv.Config.fromfile(args.model_config)
         # set cudnn_benchmark
         if cfg.get("cudnn_benchmark", False):
@@ -20,7 +20,7 @@ class Inferencer:
         cfg.model.pretrained = None
         cfg.data.test.test_mode = True
         if args.dataset == "ace":
-            cfg.data.test.data_root = "dataset/test"
+            cfg.data.test.data_root = dataload_path
         elif args.dataset == "kitti":
             cfg.data.test.data_root = "dataset/kitti"
 

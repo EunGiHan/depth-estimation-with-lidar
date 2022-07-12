@@ -1,0 +1,5 @@
+
+<launch>
+  <node name="sync_event" output="screen" pkg="sync_lidar_camera" type="sync_event_gen.py" />
+  <node name="cam" output="screen" pkg="sync_lidar_camera" type="cam_gen.py" />
+</launch>

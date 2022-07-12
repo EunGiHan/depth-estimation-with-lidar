@@ -54,11 +54,11 @@ class CustomDepthDataset(Dataset):
                  data_root,
                  test_mode=True,
                  min_depth=1e-3,
-                 max_depth=10,
+                 max_depth=80,
                  depth_scale=1):
 
         self.pipeline = Compose(pipeline)
-        self.img_path = os.path.join(data_root, 'rgb')
+        self.img_path = os.path.join(data_root, 'image_plane_'+str(1))
         self.depth_path = os.path.join(data_root, 'depth')
         self.test_mode = test_mode
         self.min_depth = min_depth
