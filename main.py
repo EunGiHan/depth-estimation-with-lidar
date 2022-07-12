@@ -24,6 +24,7 @@ Todo:
 import sys
 from datetime import datetime
 
+from depth_estimation.inferencer import Inferencer
 from tools.parsers import *
 from tools.transformations import *
 from tools.utils import *
@@ -58,6 +59,35 @@ def main(time):
             command_args.dataset, cam_calib, lidar_calib, lidar_point_cloud
         )
         # save_depth_txt(depth_gt, depth_gt_save_path + ".txt")
+
+        save_depth_gt_img(i, depth_gt, cam_calib, depth_gt_save_path)
+
+    # get image data from dataset
+    images = None  # TODO 이미지 경로(image_file)에서 불러오기 / 데이터셋에 따라 다르다면 아래 주석을 풀어서 대신 사용
+    # if command_args.dataset == "ace":
+    #     image = None
+    # elif command_args.dataset == "kitti":
+    #     image = None
+
+    # run depth estimation model and get estimates (+ save)
+    # TODO 희평 님 이곳에 채워주세요. 리턴은 depth_map
+
+    inferencer = Inferencer(args=command_args)
+    depth_map = inferencer.infer()
+    # 이미지에서 뽑은 depth map 배열 (예) [[u, v, gt_depth], [u, v, gt_depth], ...]
+    # put image one by one
+    # for img in images:
+    #     output = inferencer.infer_single_img(img)
+    #     depth_map.append(output)
+    save_depth_txt(depth_map, depth_map_save_path + ".txt")
+    # save_depth_map_img(depth_gt, depth_map_save_path + ".png")
+
+    # compare estimates & gt -> calculate errors with metrics (+ save)
+    # TODO 현진 님 이곳에 채워주세요. 리턴은 eval_result
+    eval_result = None  # 각종 수치자료 (예) dict {'SILog': xxxxx, 'MASE': xxxxx, ...}
+    report = make_eval_report(eval_result)
+    save_eval_result(report, eval_result_save_path)
+
         resize_depth_gt = save_depth_gt_img(i, depth_gt, cam_calib, depth_gt_save_path)
 
         # get image data from dataset

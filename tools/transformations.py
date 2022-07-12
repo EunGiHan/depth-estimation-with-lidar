@@ -44,7 +44,6 @@ def convert_npy_to_xyz(point_cloud_file: str):
                 continue
             else:
                 points.append([x, y, z])
-
     # points = np.array(points)
     # pcd = open3d.geometry.PointCloud()
     # pcd.points = open3d.utility.Vector3dVector(points)
