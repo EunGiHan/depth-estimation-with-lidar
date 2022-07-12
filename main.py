@@ -41,9 +41,9 @@ def main():
     lidar_calib_file = "dataset/ACE/calibration.yaml"
     image_file = ""  # 이미지 파일 경로
     point_cloud_file = "outputs/ex_point_cloud.pcd"
-    lidar_npy_file = "outputs/" + str(bag_num) + "/raw_pc/" # raw 라이다 데이터 불러옴
-    model_npy_file = "outputs/" + str(bag_num) + "/raw_img/" # raw 이미지 데이터 불러옴
-    infer_load = "outputs/" # "data"를 output으로 바꿉니다.
+    lidar_npy_file = "outputs/" + str(bag_num) + "/raw_pc/"  # raw 라이다 데이터 불러옴
+    model_npy_file = "outputs/" + str(bag_num) + "/raw_img/"  # raw 이미지 데이터 불러옴
+    infer_load = "outputs/"  # "data"를 output으로 바꿉니다.
 
     # set save paths (without extension)
     depth_gt_save_path = "./outputs/" + str(bag_num) + "/depth_gt-"
