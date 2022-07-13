@@ -33,6 +33,7 @@ test = dict(
     min_depth=1e-3,
     max_depth=10,
     depth_scale=1,
+    bag_file=7,
 )
 
 # batch size
