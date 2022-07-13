@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import string
 import os
+import string
+
 import cv2
 import depth
 import numpy as np
@@ -9,9 +10,11 @@ import open3d
 from cv2 import COLOR_BGR2GRAY
 from matplotlib import font_manager
 
+
 def get_files_count(folder_path):
-	dirListing = os.listdir(folder_path)
-	return len(dirListing)
+    dirListing = os.listdir(folder_path)
+    return len(dirListing)
+
 
 def save_depth_txt(depth: np.ndarray, save_path: str) -> None:
     """save depth data in txt file
@@ -67,7 +70,14 @@ def load_pred_img(i: int, cam_calib: dict, model_npy_file: str):
     return calibrated_img
 
 
-def save_depth_gt_img(i: int, depth_gt: np.ndarray, cam_calib: dict, proj_save_path: str, img_save_path: str, undist_img_file: str) -> np.array:
+def save_depth_gt_img(
+    i: int,
+    depth_gt: np.ndarray,
+    cam_calib: dict,
+    proj_save_path: str,
+    img_save_path: str,
+    undist_img_file: str,
+) -> np.array:
     img = np.zeros((cam_calib["size"]["height"], cam_calib["size"]["width"]), dtype=np.float32)
     backtorgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
     calibrated_img = cv2.imread(undist_img_file + str(format(i, "04")) + ".png")
@@ -82,7 +92,7 @@ def save_depth_gt_img(i: int, depth_gt: np.ndarray, cam_calib: dict, proj_save_p
         else:
             if img[int(y)][int(x)] > depth:
                 img[int(y)][int(x)] = depth  # 투영된 3D 좌표가 여러개라면, 가까운 점이 우선 순위로 매김
-    #print(np.max(img))
+    # print(np.max(img))
 
     undist = cv2.addWeighted(calibrated_img, 0.8, backtorgb, 1.0, 0.0, dtype=cv2.CV_8U)
     # cv2.imwrite(img_save_path + str(format(i, "04")) + ".png", calibrated_img)
@@ -119,7 +129,7 @@ def make_eval_report(img_num: int, depth_gt: np.array, depth_map: np.array, cam_
     Returns:
         str: report text to show in terminal and save in txt file
     """
-    result = [] 
+    result = []
     result_rev = []
     new_gt = []
     new_pred = []
@@ -140,10 +150,10 @@ def make_eval_report(img_num: int, depth_gt: np.array, depth_map: np.array, cam_
 
     new_gt = np.array(new_gt)
     new_pred = np.array(new_pred)
-    #print(np.max(new_gt), np.max(new_pred))
+    # print(np.max(new_gt), np.max(new_pred))
     thresh = np.maximum(np.array(result), np.array(result_rev))
     thresh = np.array(thresh)
-    a1, a2, a3, length= 0, 0, 0, 0
+    a1, a2, a3, length = 0, 0, 0, 0
     for row in thresh:
         for item in row:
             if item < 1.25:
@@ -153,7 +163,7 @@ def make_eval_report(img_num: int, depth_gt: np.array, depth_map: np.array, cam_
             if item < 1.25**3:
                 a3 += 1
             length += 1
-    
+
     a1 /= length
     a2 /= length
     a3 /= length
@@ -182,7 +192,7 @@ def make_eval_report(img_num: int, depth_gt: np.array, depth_map: np.array, cam_
 
     log_10 = (np.abs(np.log10(new_gt) - np.log10(new_pred))).mean()
     # return dict(a1=a1, a2=a2, a3=a3, abs_rel=abs_rel, rmse=rmse, log_10=log_10, rmse_log=rmse_log, silog=silog, sq_rel=sq_rel)
-    #print(
+    # print(
     #    dict(
     #        a1=a1,
     #        a2=a2,
@@ -194,7 +204,7 @@ def make_eval_report(img_num: int, depth_gt: np.array, depth_map: np.array, cam_
     #        silog=silog,
     #        sq_rel=sq_rel,
     #    )
-    #)
+    # )
     report = dict(
         a1=a1,
         a2=a2,
@@ -265,6 +275,6 @@ def eval_header():
         )
     )
     head += "-" * 96
-    #print(head)
+    # print(head)
     head += "\n"
     return head
