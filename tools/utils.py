@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import string
-
+import os
 import cv2
 import depth
 import numpy as np
@@ -9,6 +9,9 @@ import open3d
 from cv2 import COLOR_BGR2GRAY
 from matplotlib import font_manager
 
+def get_files_count(folder_path):
+	dirListing = os.listdir(folder_path)
+	return len(dirListing)
 
 def save_depth_txt(depth: np.ndarray, save_path: str) -> None:
     """save depth data in txt file
@@ -32,8 +35,8 @@ def save_depth_npy(depth: np.ndarray, save_path: str) -> None:
     np.save(save_path, depth)
 
 
-def load_pred_img(i: int, cam_calib: dict):
-    img2 = cv2.imread("data/4/" + str(format(i, "04")) + ".png")
+def load_pred_img(i: int, cam_calib: dict, model_npy_file: str):
+    img2 = cv2.imread(model_npy_file + str(format(i, "04")) + ".png")
     height, width, channel = img2.shape
 
     int_param = np.array(cam_calib["K"])
@@ -64,10 +67,10 @@ def load_pred_img(i: int, cam_calib: dict):
     return calibrated_img
 
 
-def save_depth_gt_img(i: int, depth_gt: np.ndarray, cam_calib: dict, save_path: str) -> np.array:
+def save_depth_gt_img(i: int, depth_gt: np.ndarray, cam_calib: dict, proj_save_path: str, img_save_path: str, undist_img_file: str) -> np.array:
     img = np.zeros((cam_calib["size"]["height"], cam_calib["size"]["width"]), dtype=np.float32)
     backtorgb = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-    calibrated_img = load_pred_img(i, cam_calib)
+    calibrated_img = cv2.imread(undist_img_file + str(format(i, "04")) + ".png")
 
     for x, y, depth in depth_gt:
         if depth < 0:
@@ -79,11 +82,12 @@ def save_depth_gt_img(i: int, depth_gt: np.ndarray, cam_calib: dict, save_path: 
         else:
             if img[int(y)][int(x)] > depth:
                 img[int(y)][int(x)] = depth  # 투영된 3D 좌표가 여러개라면, 가까운 점이 우선 순위로 매김
-    print(np.max(img))
+    #print(np.max(img))
 
     undist = cv2.addWeighted(calibrated_img, 0.8, backtorgb, 1.0, 0.0, dtype=cv2.CV_8U)
-    # cv2.imwrite(save_path + "image_plane/" + str(format(i, "04")) + ".png", calibrated_img)
-    # cv2.imwrite(save_path + str(format(i, "04")) + "_undist.png", undist)
+    # cv2.imwrite(img_save_path + str(format(i, "04")) + ".png", calibrated_img)
+    # cv2.imwrite(proj_save_path + "projection-" + str(format(i, "04")) + ".png", undist)
+    # cv2.imwrite(proj_save_path + "depth_gt-" + str(format(i, "04")) + ".png", img)
     return np.array(img)
 
 
@@ -115,31 +119,54 @@ def make_eval_report(img_num: int, depth_gt: np.array, depth_map: np.array, cam_
     Returns:
         str: report text to show in terminal and save in txt file
     """
-    result = np.zeros((cam_calib["size"]["height"], cam_calib["size"]["width"]), dtype=np.float32)
-    result_rev = np.zeros(
-        (cam_calib["size"]["height"], cam_calib["size"]["width"]), dtype=np.float32
-    )
+    result = [] 
+    result_rev = []
     new_gt = []
     new_pred = []
     min_depth = 0
     max_depth = 80
 
     for i in range(len(depth_gt)):
+        temp_r = []
+        temp_r_v = []
         for j in range(len(depth_gt[0])):
             if min_depth < depth_gt[i][j] <= max_depth:
-                result[i][j] = depth_gt[i][j] / depth_map[i][j]
-                result_rev[i][j] = depth_map[i][j] / depth_gt[i][j]
+                temp_r.append(depth_gt[i][j] / depth_map[i][j])
+                temp_r_v.append(depth_map[i][j] / depth_gt[i][j])
                 new_gt.append(depth_gt[i][j])
                 new_pred.append(depth_map[i][j])
-                # print(depth_gt[i][j], depth_map[i][j])
+        result.append(temp_r)
+        result_rev.append(temp_r_v)
 
     new_gt = np.array(new_gt)
     new_pred = np.array(new_pred)
-    print(np.max(new_gt), np.max(new_pred))
-    thresh = np.maximum(result, result_rev)
-    a1 = (thresh < 1.25).mean()
-    a2 = (thresh < 1.25**2).mean()
-    a3 = (thresh < 1.25**3).mean()
+    #print(np.max(new_gt), np.max(new_pred))
+    thresh = np.maximum(np.array(result), np.array(result_rev))
+    thresh = np.array(thresh)
+    a1, a2, a3, length= 0, 0, 0, 0
+    for row in thresh:
+        for item in row:
+            if item < 1.25:
+                a1 += 1
+            if item < 1.25**2:
+                a2 += 1
+            if item < 1.25**3:
+                a3 += 1
+            length += 1
+    
+    a1 /= length
+    a2 /= length
+    a3 /= length
+
+    print(a1, a2, a3)
+
+    # print(type(thresh))
+    # print(type(thresh))
+    # print(type(thresh[0]))
+    # print(thresh)
+    # a1 = (thresh < 1.25).mean()
+    # a2 = (thresh < 1.25**2).mean()
+    # a3 = (thresh < 1.25**3).mean()
 
     abs_rel = np.mean(np.abs(new_gt - new_pred) / new_gt)
     sq_rel = np.mean(((new_gt - new_pred) ** 2) / new_gt)
@@ -155,19 +182,19 @@ def make_eval_report(img_num: int, depth_gt: np.array, depth_map: np.array, cam_
 
     log_10 = (np.abs(np.log10(new_gt) - np.log10(new_pred))).mean()
     # return dict(a1=a1, a2=a2, a3=a3, abs_rel=abs_rel, rmse=rmse, log_10=log_10, rmse_log=rmse_log, silog=silog, sq_rel=sq_rel)
-    print(
-        dict(
-            a1=a1,
-            a2=a2,
-            a3=a3,
-            abs_rel=abs_rel,
-            rmse=rmse,
-            log_10=log_10,
-            rmse_log=rmse_log,
-            silog=silog,
-            sq_rel=sq_rel,
-        )
-    )
+    #print(
+    #    dict(
+    #        a1=a1,
+    #        a2=a2,
+    #        a3=a3,
+    #        abs_rel=abs_rel,
+    #        rmse=rmse,
+    #        log_10=log_10,
+    #        rmse_log=rmse_log,
+    #        silog=silog,
+    #        sq_rel=sq_rel,
+    #    )
+    #)
     report = dict(
         a1=a1,
         a2=a2,
@@ -200,8 +227,8 @@ def make_report_str(img_num: int, report: dict) -> str:
 
 
 def make_final_report_str(bag_num: int, report: list):
-    f_report += "\n"
-    f_report = "=" * 96
+    f_report = "\n"
+    f_report += "=" * 96
     f_report += "\n"
     f_report += "{:^96}\n".format("Final Report")
     f_report += "=" * 96
@@ -238,6 +265,6 @@ def eval_header():
         )
     )
     head += "-" * 96
-    print(head)
+    #print(head)
     head += "\n"
     return head

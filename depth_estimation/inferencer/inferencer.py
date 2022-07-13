@@ -2,9 +2,12 @@
 import mmcv
 import numpy as np
 import torch
+import cv2
+
 from mmcv.parallel import MMDataParallel
 from mmcv.runner import get_dist_info, init_dist, load_checkpoint, wrap_fp16_model
 from mmcv.utils import DictAction
+from mmcv.image import tensor2imgs
 
 from depth_estimation.datasets import build_dataloader, build_dataset
 from depth_estimation.models import build_depther
@@ -53,7 +56,7 @@ class Inferencer:
         self.model = MMDataParallel(self.model, device_ids=[0])
         self.model.eval()
 
-    def infer(self):
+    def infer(self, depth_path):
         result_depths = []
         self.model.eval()
         dataset = self.data_loader.dataset
@@ -70,6 +73,22 @@ class Inferencer:
                 result_depth = self.model(return_loss=False, **data)
             print(result_depth[0].shape)
             result_depths.append(result_depth[0])
+            
+            # add save depth_image
+            img_tensor = data['img'][0]
+            img_metas = data['img_metas'][0].data[0]
+            imgs = tensor2imgs(img_tensor, **img_metas[0]['img_norm_cfg'])
+            assert len(imgs) == len(img_metas)
+            i = 0
+            for img, img_meta in zip(imgs, img_metas):
+                i += 1
+                h, w, _ = img_meta['img_shape']
+                img_show = img[:h, :w, :]
+
+                ori_h, ori_w = img_meta['ori_shape'][:-1]
+                img_show = mmcv.imresize(img_show, (ori_w, ori_h))
+                cv2.imwrite(depth_path + str(format(i, "04")) + ".png", img_show)
+
             prog_bar.update()
         return result_depths
 
