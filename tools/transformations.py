@@ -20,9 +20,8 @@ def convert_pcd_to_xyz(point_cloud_file: str):
     data = open3d.io.read_point_cloud(point_cloud_file)
     points = np.array(
         data.points
-    )  # data.points type: 'open3d.cpu.pybind.utility.Vector3dVector' / shape: (# of points, 3)
-    # points[:, [0, 2]] = points[:, [2, 0]] # swap columns XYZ -> ZYX / data.points[0] type: numpy.ndarray
-    # TODO 축 안 바꿔도 될 것 같은데?
+    )
+
     return points
 
 
@@ -50,6 +49,7 @@ def convert_npy_to_xyz(point_cloud_file: str):
     # pcd = open3d.geometry.PointCloud()
     # pcd.points = open3d.utility.Vector3dVector(points)
     # open3d.io.write_point_cloud('/home/user/depth-estimation-with-lidar/outputs/'+'temp.pcd', pcd)
+
     return points
 
 
@@ -70,13 +70,23 @@ def convert_npy_to_xyz_only_depth(point_cloud_file: str):
         for y, z in enumerate(data_):
             temp.append(z)
         points.append(temp)
+
     return points
 
 
-def in_image(point, size: dict) -> bool:
-    """args 바꾸기"""
+def in_image(point: np.ndarray, size: dict) -> bool:
+    """check if projected point is within image size
+
+    Args
+        point (numpy.ndarray): projected point (x, y, z)
+        size (dict): image size
+
+    Returns
+        bool: whether point is within image
+    """
     row = np.bitwise_and(0 <= point[0], point[0] < size["width"])
     col = np.bitwise_and(0 <= point[1], point[1] < size["height"])
+
     return np.bitwise_and(row, col)
 
 
@@ -92,14 +102,7 @@ def project_lidar_to_cam(
 
     Returns:
         numpy.ndarray: projected points of lidar data into image plane (ex) [[u, v, gt_depth], [u, v, gt_depth], [u, v, gt_depth], ...]
-
-    Todo:
-        * 매번 캘리브레이션 정보를 넘기는 것은 비효율적으로 보임!
-        * PCD 시각화해보고, 카메라 영역 외 필터링이 맞게 되고 있는지 확인해보기
-        * depth가 음수가 나오진 않는지 확인해보기
-        * sort 해서 반환할까
     """
-    # projections = [project_point(dataset, p, cam_calib, lidar_calib) for p in point_cloud] # 이미지 크기 벗어나는 것 잘라내기 위해 아래처럼 반복문으로 만듦
     projections = []
     for p in point_cloud:
         projected_point = project_point(dataset, p, cam_calib, lidar_calib)
@@ -169,11 +172,9 @@ def project_point(dataset: str, lidar_point: np.ndarray, cam_calib: dict, lidar_
         cam = np.matmul(cam, lidar)  # TODO 형태 확인 필요! [sx, sy, s(=depth)]가 맞는지
 
     # [sx, sy, s(=depth)] -> [x, y, depth]
-    depth = cam[-1]  # TODO 단위가 뭐야?????
+    depth = cam[-1]
     cam[:-1] = cam[:-1] // (depth * 2)  # [x, y], float
     cam[:-1] = np.array(list(map(int, cam[:-1])))  # [x, y], int, image pixel position
-    # TODO 나중에 어차피 depth 합칠 거면 변환 여기서 의미가 없음.
-    # 소숫점 버린 형태로 주긴 하지만 나중에 접근 시에는 int로 다시 변환을 하긴 해야 함
 
     # check transformation result
     # logging.info("depth:\t", str(depth))

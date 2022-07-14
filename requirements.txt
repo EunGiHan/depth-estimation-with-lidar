@@ -1,6 +1,0 @@
-pyyaml
-black
-isort
-pytest
-open3d
-numpy

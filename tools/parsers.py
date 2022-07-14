@@ -16,19 +16,19 @@ def parse_args():
     parser = argparse.ArgumentParser(description="depth estimation & evaluation")
     parser.add_argument("--dataset", dest="dataset", help="kitti / ace", default="ace", type=str)
     parser.add_argument(
-        "--visualize", dest="visualize", help="visualize results", default="False", type=bool
+        "--save_png", dest="save_png", help="save PNG img (gt, depth map)", default="True", type=bool
     )
-    parser.add_argument("--model_config", help="test config file path")
-    parser.add_argument("--checkpoint", help="checkpoint file")
-
-    # TODO 필요한 것 추가하기
+    parser.add_argument(
+        "--save_array", dest="save_array", help="save TXT, NPY (gt, depth map)", default="True", type=bool
+    )
 
     # if no arguments
-    # if len(sys.argv) == 1:
-    #     parser.print_help()
-    #     sys.exit()
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit()
 
     args = parser.parse_args()
+
     return args
 
 
@@ -64,7 +64,7 @@ def parse_cam_calib(dataset: str, file_path: str) -> dict:
             )  # rotation matrix (3, 3)
             cam_calib["t"] = np.reshape(
                 [float(x) for x in calib_info["T_00"].split(" ")], (3, 1)
-            )  # translation (3, 1) # TODO ace의 T와 shape 맞나 확인
+            )  # translation (3, 1)
             # TODO 사이즈 추가하기!
 
     return cam_calib
@@ -91,7 +91,7 @@ def parse_lidar_calib(dataset: str, file_path: str) -> dict:
             calib_info = yaml.load(f, Loader=yaml.FullLoader)
             lidar_calib["R"] = np.reshape(
                 [float(x) for x in calib_info["R"].split(" ")], (3, 3)
-            )  # rotation matrix(lidar->cam) (3, 3) # TODO 확인!
+            )  # rotation matrix(lidar->cam) (3, 3)
             lidar_calib["t"] = np.reshape(
                 [float(x) for x in calib_info["T"].split(" ")], (3, 1)
             )  # translation vector (3, 1)
