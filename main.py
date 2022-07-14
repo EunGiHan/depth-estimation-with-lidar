@@ -54,13 +54,13 @@ def main():
     # parse calibration files -> get information
     cam_calib = parse_cam_calib(command_args.dataset, cam_calib_file)
     lidar_calib = parse_lidar_calib(command_args.dataset, lidar_calib_file)
-    
+
     # add undist image
     if get_files_count(undist_img_file) != get_files_count(raw_img_file):
         for i in range(1, get_files_count(raw_img_file) + 1):
             calibrated_img = load_pred_img(i, cam_calib, raw_img_file)
             cv2.imwrite(undist_img_file + str(format(i, "04")) + ".png", calibrated_img)
-    
+
     # model imfromation
     inferencer = None
     pred_depths = None
