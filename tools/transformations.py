@@ -44,6 +44,8 @@ def convert_npy_to_xyz(point_cloud_file: str):
                 continue
             else:
                 points.append([x, y, z])
+    
+    # if you want use pcd type? try this!
     # points = np.array(points)
     # pcd = open3d.geometry.PointCloud()
     # pcd.points = open3d.utility.Vector3dVector(points)
@@ -68,10 +70,6 @@ def convert_npy_to_xyz_only_depth(point_cloud_file: str):
         for y, z in enumerate(data_):
             temp.append(z)
         points.append(temp)
-    # points = np.array(points)
-    # pcd = open3d.geometry.PointCloud()
-    # pcd.points = open3d.utility.Vector3dVector(points)
-    # open3d.io.write_point_cloud('/home/user/depth-estimation-with-lidar/outputs/'+'temp.pcd', pcd)
     return points
 
 

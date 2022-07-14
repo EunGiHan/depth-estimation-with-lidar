@@ -2,6 +2,7 @@
 import cv2
 import mmcv
 import numpy as np
+import os.path as osp
 import torch
 from mmcv.image import tensor2imgs
 from mmcv.parallel import MMDataParallel
@@ -11,6 +12,12 @@ from mmcv.utils import DictAction
 from depth_estimation.datasets import build_dataloader, build_dataset
 from depth_estimation.models import build_depther
 
+
+def replace_str(s):
+    if s[0] == '/':
+        return s[1:]
+    new_str = s.replace('/', '_')
+    return new_str
 
 class Inferencer:
     def __init__(self, args, dataload_path) -> None:
@@ -86,7 +93,13 @@ class Inferencer:
 
                 ori_h, ori_w = img_meta["ori_shape"][:-1]
                 img_show = mmcv.imresize(img_show, (ori_w, ori_h))
-                cv2.imwrite(depth_path + str(format(i, "04")) + ".png", img_show)
+                out_file = osp.join(depth_path, "depth_map-"+replace_str(img_meta['ori_filename']))
+                self.model.module.show_result(
+                    img_show,
+                    result_depth,
+                    show=False,
+                    out_file=out_file,
+                    format_only=False)
 
             prog_bar.update()
         return result_depths

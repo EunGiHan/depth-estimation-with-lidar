@@ -95,9 +95,8 @@ def save_depth_gt_img(
     # print(np.max(img))
 
     undist = cv2.addWeighted(calibrated_img, 0.8, backtorgb, 1.0, 0.0, dtype=cv2.CV_8U)
-    # cv2.imwrite(img_save_path + str(format(i, "04")) + ".png", calibrated_img)
-    # cv2.imwrite(proj_save_path + "projection-" + str(format(i, "04")) + ".png", undist)
-    # cv2.imwrite(proj_save_path + "depth_gt-" + str(format(i, "04")) + ".png", img)
+    cv2.imwrite(proj_save_path + "projection-" + str(format(i, "04")) + ".png", undist)
+    cv2.imwrite(proj_save_path + "depth_gt-" + str(format(i, "04")) + ".png", img)
     return np.array(img)
 
 

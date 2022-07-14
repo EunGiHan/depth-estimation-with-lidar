@@ -35,7 +35,7 @@ from tools.utils import *
 
 def main():
     # number of bag file
-    bag_num = 1
+    bag_num = 7
     # data paths
     cam_calib_file = "dataset/ACE/calibration.yaml"
     lidar_calib_file = "dataset/ACE/calibration.yaml"
@@ -54,12 +54,14 @@ def main():
     # parse calibration files -> get information
     cam_calib = parse_cam_calib(command_args.dataset, cam_calib_file)
     lidar_calib = parse_lidar_calib(command_args.dataset, lidar_calib_file)
-    print(get_files_count(raw_img_file))
+    
     # add undist image
     if get_files_count(undist_img_file) != get_files_count(raw_img_file):
         for i in range(1, get_files_count(raw_img_file) + 1):
             calibrated_img = load_pred_img(i, cam_calib, raw_img_file)
             cv2.imwrite(undist_img_file + str(format(i, "04")) + ".png", calibrated_img)
+    
+    # model imfromation
     inferencer = None
     pred_depths = None
     if (
@@ -100,7 +102,7 @@ def main():
         )  # save gt_img with depth_img
 
         # run depth estimation model and get estimates (+ save)
-        # depth_map = inferencer.infer_single_img(image)
+        # Is model run?
         if inferencer == None:
             depth_map = pred_depths
         else:
@@ -116,6 +118,7 @@ def main():
         final_report_str += report_str
         eval_result.append(report)
 
+    # print image average
     dict_list = ["a1", "a2", "a3", "rmse", "rmse_log", "silog", "abs_rel", "sq_rel", "log_10"]
     dict_eval = []
     for dic in dict_list:
