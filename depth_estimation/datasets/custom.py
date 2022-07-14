@@ -56,7 +56,7 @@ class CustomDepthDataset(Dataset):
                  min_depth=1e-3,
                  max_depth=80,
                  depth_scale=1,
-                 bag_num=1):
+                 bag_num=7):
 
         self.pipeline = Compose(pipeline)
         self.img_path = os.path.join(data_root, str(bag_num), "undist_img")
