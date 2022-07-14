@@ -18,9 +18,7 @@ def convert_pcd_to_xyz(point_cloud_file: str):
         numpy.ndarray: format converted lidar data
     """
     data = open3d.io.read_point_cloud(point_cloud_file)
-    points = np.array(
-        data.points
-    )
+    points = np.array(data.points)
 
     return points
 

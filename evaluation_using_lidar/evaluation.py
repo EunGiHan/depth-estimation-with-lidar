@@ -34,7 +34,7 @@ def make_eval_report(img_num: int, depth_gt: np.ndarray, depth_map: np.ndarray) 
 
     new_gt = np.array(new_gt)
     new_pred = np.array(new_pred)
-    
+
     thresh = np.maximum(np.array(result), np.array(result_rev))
     thresh = np.array(thresh)
     a1, a2, a3, length = 0, 0, 0, 0
@@ -67,7 +67,7 @@ def make_eval_report(img_num: int, depth_gt: np.ndarray, depth_map: np.ndarray) 
     silog = np.sqrt(np.mean(err**2) - np.mean(err) ** 2) * 100
 
     log_10 = (np.abs(np.log10(new_gt) - np.log10(new_pred))).mean()
-    
+
     report = dict(
         a1=a1,
         a2=a2,

@@ -16,10 +16,18 @@ def parse_args():
     parser = argparse.ArgumentParser(description="depth estimation & evaluation")
     parser.add_argument("--dataset", dest="dataset", help="kitti / ace", default="ace", type=str)
     parser.add_argument(
-        "--save_png", dest="save_png", help="save PNG img (gt, depth map)", default="True", type=bool
+        "--save_png",
+        dest="save_png",
+        help="save PNG img (gt, depth map)",
+        default="True",
+        type=bool,
     )
     parser.add_argument(
-        "--save_array", dest="save_array", help="save TXT, NPY (gt, depth map)", default="True", type=bool
+        "--save_array",
+        dest="save_array",
+        help="save TXT, NPY (gt, depth map)",
+        default="True",
+        type=bool,
     )
 
     # if no arguments

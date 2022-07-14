@@ -9,7 +9,7 @@ import open3d
 
 def get_files_count(folder_path: str):
     """count number of files in this path
-    
+
     Args:
         folder_path (str): path for count number of files
     """
@@ -52,7 +52,7 @@ def undistort_image(img_num: int, cam_calib: dict, raw_img_file_path: str):
         img_num (int): raw image number
         cam_calib (dict): camera calibration information
         raw_img_file_path (str): raw image file path
-    
+
     Returns:
         numpy.ndarray: undistorted image (Mat)
     """
@@ -92,7 +92,7 @@ def save_depth_gt_img(
     cam_calib: dict,
     depth_gt_save_path: str,
     undist_img_file: str,
-    save_png: bool
+    save_png: bool,
 ) -> np.array:
     """save depth ground truth(projected points)
 
@@ -113,20 +113,28 @@ def save_depth_gt_img(
 
     for x, y, depth in depth_gt:
         if depth < 0:
-            depth = 0 # behind the car
-            
+            depth = 0  # behind the car
+
         if img[int(y)][int(x)] == 0:
-            img[int(y)][int(x)] = depth # if no depth data at this pixel, set by this value
+            img[int(y)][int(x)] = depth  # if no depth data at this pixel, set by this value
             if 0 < depth <= 80:
-                backtorgb[int(y)][int(x)] = (0, 0, 255) # max depth
+                backtorgb[int(y)][int(x)] = (0, 0, 255)  # max depth
         else:
-            if img[int(y)][int(x)] > depth: # there is depth data, but bigger than this
-                img[int(y)][int(x)] = depth  # if projected points are more than one, set the nearest value
+            if img[int(y)][int(x)] > depth:  # there is depth data, but bigger than this
+                img[int(y)][
+                    int(x)
+                ] = depth  # if projected points are more than one, set the nearest value
 
     if save_png == True:
-        undist = cv2.addWeighted(undistored_img, 0.8, backtorgb, 1.0, 0.0, dtype=cv2.CV_8U) # overlap gt on color image
-        cv2.imwrite(depth_gt_save_path + "projection-" + str(format(img_num, "04")) + ".png", undist)
-        cv2.imwrite(depth_gt_save_path + "depth_gt-" + str(format(img_num, "04")) + ".png", img) # only depth values
+        undist = cv2.addWeighted(
+            undistored_img, 0.8, backtorgb, 1.0, 0.0, dtype=cv2.CV_8U
+        )  # overlap gt on color image
+        cv2.imwrite(
+            depth_gt_save_path + "projection-" + str(format(img_num, "04")) + ".png", undist
+        )
+        cv2.imwrite(
+            depth_gt_save_path + "depth_gt-" + str(format(img_num, "04")) + ".png", img
+        )  # only depth values
 
     return np.array(img)
 

@@ -23,14 +23,14 @@ from tools.utils import *
 
 
 def main():
-    bag_num = 1 # number of bag file
-    eval_result = []    # evaluation result (for calculation)
-    eval_result_str = ""   # evaluation result (for print)
+    bag_num = 1  # number of bag file
+    eval_result = []  # evaluation result (for calculation)
+    eval_result_str = ""  # evaluation result (for print)
 
     # SET PATHS
     if command_args.dataset == "ace":
-        cam_calib_file = "dataset/ACE/calibration.yaml" # camera calibration file
-        lidar_calib_file = "dataset/ACE/calibration.yaml" # lidar calibration file
+        cam_calib_file = "dataset/ACE/calibration.yaml"  # camera calibration file
+        lidar_calib_file = "dataset/ACE/calibration.yaml"  # lidar calibration file
     elif command_args.dataset == "kitti":
         cam_calib_file = "dataset/KITTI/2011_09_26/2011_09_26_calib/calib_cam_to_cam.txt"
         lidar_calib_file = "dataset/KITTI/2011_09_26/2011_09_26_calib/calib_velo_to_cam.txt"
@@ -39,16 +39,24 @@ def main():
     infer_load = "outputs/"
 
     undist_img_file = "outputs/" + str(bag_num) + "/undist_img/"  # undistorted image path
-    depth_gt_save_path = "outputs/" + str(bag_num) + "/depth_gt/" # GT(projected points) path (png, txt, npy)
-    depth_map_save_path = "outputs/" + str(bag_num) + "/depth_map/" # depth map path (png, txt, npy)
-    eval_result_save_path = "outputs/" + str(bag_num) + "/eval_result.txt" # evaluation result file name
+    depth_gt_save_path = (
+        "outputs/" + str(bag_num) + "/depth_gt/"
+    )  # GT(projected points) path (png, txt, npy)
+    depth_map_save_path = (
+        "outputs/" + str(bag_num) + "/depth_map/"
+    )  # depth map path (png, txt, npy)
+    eval_result_save_path = (
+        "outputs/" + str(bag_num) + "/eval_result.txt"
+    )  # evaluation result file name
 
     # GET CALIBRATION INFO
     cam_calib = parse_cam_calib(command_args.dataset, cam_calib_file)
     lidar_calib = parse_lidar_calib(command_args.dataset, lidar_calib_file)
 
     # UNDISTORT IMAGE
-    if get_files_count(undist_img_file) != get_files_count(raw_img_file): # check if already undistorted images
+    if get_files_count(undist_img_file) != get_files_count(
+        raw_img_file
+    ):  # check if already undistorted images
         for i in range(1, get_files_count(raw_img_file) + 1):
             undistored_img = undistort_image(i, cam_calib, raw_img_file)
             cv2.imwrite(undist_img_file + str(format(i, "04")) + ".png", undistored_img)
@@ -67,11 +75,11 @@ def main():
     eval_result_str += eval_header()
     for img_num in range(1, get_files_count(raw_img_file) + 1):
         # print indices for each 50 images
-        if img_num % 50 == 0: 
-            eval_result_str += eval_header() 
-        
+        if img_num % 50 == 0:
+            eval_result_str += eval_header()
+
         # if there already exist depth maps -> get depth estimation
-        if inferencer == None: 
+        if inferencer == None:
             pred_depths = convert_npy_to_xyz_only_depth(
                 depth_map_save_path + "depth_map-" + str(format(img_num, "04")) + ".npy"
             )
@@ -86,19 +94,25 @@ def main():
 
         # SAVE GT DATA
         if command_args.save_array == True:
-            save_depth_txt(depth_gt, depth_gt_save_path + "/depth_gt-" + str(format(img_num, "04")) + ".txt")
+            save_depth_txt(
+                depth_gt, depth_gt_save_path + "/depth_gt-" + str(format(img_num, "04")) + ".txt"
+            )
             save_depth_npy(depth_gt, depth_gt_save_path + "/depth_gt-" + str(format(img_num, "04")))
-        resize_depth_gt = save_depth_gt_img(img_num, depth_gt, cam_calib, depth_gt_save_path, undist_img_file, command_args.save_png)
+        resize_depth_gt = save_depth_gt_img(
+            img_num, depth_gt, cam_calib, depth_gt_save_path, undist_img_file, command_args.save_png
+        )
 
         # GET DEPTH_MAP DATA
         if inferencer == None:
-            depth_map = pred_depths # for one image (result already exist)
+            depth_map = pred_depths  # for one image (result already exist)
         else:
-            depth_map = pred_depths[img_num - 1][0] # all images (run inference in this run)
+            depth_map = pred_depths[img_num - 1][0]  # all images (run inference in this run)
 
         # SAVE DEPTH_MAP DATA
         if command_args.save_array == True:
-            save_depth_txt(depth_map, depth_map_save_path + "depth_map-" + str(format(i, "04")) + ".txt")
+            save_depth_txt(
+                depth_map, depth_map_save_path + "depth_map-" + str(format(i, "04")) + ".txt"
+            )
             save_depth_npy(depth_map, depth_map_save_path + "depth_map-" + str(format(i, "04")))
         if command_args.save_png == True:
             save_depth_map_img(depth_gt, depth_map_save_path + ".png")
